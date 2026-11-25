@@ -4,6 +4,8 @@
 
 [![CI: check](https://github.com/zexion7873/activity-band/actions/workflows/check.yml/badge.svg)](https://github.com/zexion7873/activity-band/actions/workflows/check.yml)
 
+<img src="docs/band.svg" width="672" title="Drawn by the mod's own row builders from sample steps and agents, not a screenshot." alt="The band's two rows, drawn by the mod's own row builders from sample steps and agents rather than a screenshot. The plan row: five marks, two filled green for finished steps, one hollow in the accent color for the step in progress and two hollow grey for pending ones, then 2/5, a play mark and 'write the fix' in bold, then an arrow and the next step, 'run the tests', dimmed. The agents row: 'agents 2', then 'general-purpose: review the diff' with 'waiting 5m' in the warning color, then 'Explore: map the hooks' with '3m'.">
+
 **Shows the plan step in progress and the subagents still running, above the
 Claude Code prompt, so you need not open a panel to see where a turn is.**
 

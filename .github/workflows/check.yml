@@ -33,3 +33,10 @@ jobs:
         run: claude plugin validate --strict plugin
       - name: test
         run: claude plugin test plugin
+      - name: the committed hero matches the code that draws it
+        run: |
+          node tools/make-hero.mts "$RUNNER_TEMP/band.svg"
+          cmp docs/band.svg "$RUNNER_TEMP/band.svg" || {
+            echo "::error::docs/band.svg is stale: run node tools/make-hero.mts and commit it"
+            exit 1
+          }
