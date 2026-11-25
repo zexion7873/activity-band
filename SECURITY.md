@@ -23,7 +23,7 @@ Worth knowing before you decide whether something is in scope.
   the task list (each step's text and status) and the turn's wrap-up, of which
   it uses only whether the call succeeded.
 - It reads the session's agent list: each agent's id, type, description,
-  status and start time.
+  latest progress summary, status and start time.
 - It keeps both in the session's state, in memory, and draws them as text
   above the prompt.
 - It writes no file and nothing to the per-plugin store.
@@ -36,13 +36,13 @@ Worth knowing before you decide whether something is in scope.
 - The mod changing, delaying or blocking a tool call or an agent spawn it
   watches.
 - Anything it read leaving the machine or being written to disk.
-- A step text or agent description that makes the band draw something other
-  than that text.
+- A step text, agent description or progress summary that makes the band draw
+  something other than that text.
 
 ### Out of scope
 
-- Misleading text in a step or a description. The mod shows what the model
-  wrote, as written.
+- Misleading text in a step, a description or a progress summary. The mod
+  shows what the model wrote, as written.
 - The plan row going quiet because the desktop app changed its task-list tool.
   That is a compatibility bug: open a normal issue.
 - Anything that needs an attacker who already controls the machine, the Claude

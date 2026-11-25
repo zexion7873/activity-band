@@ -41,9 +41,21 @@ says otherwise.
   overflows.
 - **Step aside for a survey.** `e.props.hasSurvey` returns `below` untouched.
   No test yet.
+- **Draw a plan as paused when no turn is running.** A turn that stops before
+  its wrap-up leaves steps undone; with `e.props.isWorking` false the row is
+  dim and `‖` stands where `▶` would claim work nobody is doing.
+- **Fill one mark for each finished step, no more.** The step in progress is a
+  hollow mark in the accent color, so the filled marks agree with the count.
+- **Count width in cells, not characters.** A CJK character takes two; a cut
+  by `length` overflows `e.props.bodyColumns`.
+- **Say an agent's status in a word.** One that is not running shows the word
+  before its minutes; the warning color on `waiting` only adds to it.
+- **Change the agents shape tag with `ActivityAgent`.** State outlives a
+  reload, and a list stored under the old type would be drawn with fields
+  missing. No test.
 
-The desktop hover cards are pinned for the plan row only; the agents row's
-card has no test and has not been watched in the app.
+Both hover cards are pinned by tests. The agents row's card, and every color,
+have not been watched on a real surface.
 
 ## The plan source is not a documented interface
 
