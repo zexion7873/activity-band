@@ -1,8 +1,9 @@
 # Working on activity-band
 
 A Claude Code mod: a plugin of function hooks, one module
-(`plugin/hooks/register.tsx`) plus the pure plan reducer it imports
-(`plugin/hooks/plan.ts`). No package manager, no dependencies. `README.md`
+(`plugin/hooks/register.tsx`) plus the two plain modules it imports: the plan
+reducer (`plugin/hooks/plan.ts`) and the row builders
+(`plugin/hooks/rows.ts`). No package manager, no dependencies. `README.md`
 covers what it does for a user; this file covers the traps.
 
 ## `plugin/` is what ships
@@ -72,10 +73,13 @@ No terminal session has these tools, so the plan row cannot be exercised from
 one: the tests call the hook with the arguments directly, and a look at the
 real row needs the desktop app.
 
-## `plugin/hooks/plan.ts` stays plain
+## `plan.ts` and `rows.ts` stay plain
 
-It must not import `claude-code` values: the reducer is tested as a plain
-function, and its input is model-written JSON it has to check for itself.
+Neither may import a `claude-code` value; a type import is erased and is fine.
+The reducer is tested as a plain function, and its input is model-written JSON
+it has to check for itself. Every generator under `tools/` imports `rows.ts`
+under plain node, and that import is what makes the images the mod's own
+drawing rather than a copy of it.
 
 ## Changes reach a session by two different paths
 
@@ -95,7 +99,13 @@ claude plugin validate .                 # the marketplace manifest only; it doe
 claude plugin validate --strict plugin   # the plugin and every engine call it makes; warnings fail
 claude plugin test plugin                # plugin/**/*.test.ts in the engine's harness
 (cd plugin && tsc -p .)                  # only after the mod has loaded once from this checkout
+node tools/make-hero.mts                 # README hero; NO ARG OVERWRITES docs/band.svg
+node tools/make-social-card.mts | rsvg-convert -o docs/social-card.png       # social preview
+node tools/make-icon.mts | rsvg-convert -o plugin/.claude-plugin/icon.png    # marketplace icon
 ```
+
+`tools/` sits outside `plugin/` on purpose: it runs under node, not the
+engine, and stays out of an install.
 
 `plugin/.claude-plugin/types/` is written by the engine when the mod loads and
 is gitignored; `plugin/tsconfig.json` extends it, so `tsc` has nothing to
@@ -111,11 +121,42 @@ Two traps in the checks:
   where a test calls an app tool. The test's `call()` helper casts for that
   reason; do not unwrap it.
 
+## The hero
+
+`docs/band.svg` is generated, and byte-reproducible: `tools/draw.mts` lays out
+the spans `planRow()` and `agentsRow()` return as SVG, with no font or
+rasteriser involved. CI regenerates it and `cmp`s the committed file, so a
+change to a row's text, marks or styles without rerunning
+`node tools/make-hero.mts` reds the build. The README's `width=` must match the
+SVG's own `width`; nothing checks that.
+
+Two things in the drawing are not the mod's: the colors, which are literals in
+`tools/draw.mts` standing in for theme keys only a live surface resolves (a key
+with no literal throws), and the three marks, drawn as shapes because a
+reader's font may have no glyph for them.
+
+## The social card and the icon
+
+`docs/social-card.png` is the repo's social preview, drawn by
+`tools/make-social-card.mts` from the same rows plus `plugin.json`'s
+description, then rasterised by `rsvg-convert`. Two triggers stale it: a row
+moving and the description changing. The script throws if the description
+stops reading `<tagline>: <accent>`. GitHub takes the social preview only
+through Settings → General → Social preview, so a regenerated PNG is not live
+until someone uploads it there.
+
+`plugin/.claude-plugin/icon.png` is the marketplace listing icon, drawn by
+`tools/make-icon.mts` from the plan row's marks. It is the one image inside
+`plugin/`, because the validator looks for it there. The marketplace takes the
+icon only from the first save or submission in the developer portal, so
+regenerating it after that changes the file and not the listing.
+
 ## CI and releases
 
 `.github/workflows/check.yml` installs Claude Code at a pinned version from
-npm, then validates the marketplace and the plugin (strict) and runs the
-tests, on every PR and push to `main`. The pin is the version the README's
+npm, then validates the marketplace and the plugin (strict), runs the tests
+and compares the committed hero with a fresh one, on every PR and push to
+`main`. The pin is the version the README's
 install section names; bump both together.
 
 The version line in `plugin/.claude-plugin/plugin.json` landing on `main` is

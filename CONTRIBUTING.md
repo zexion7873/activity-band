@@ -31,6 +31,7 @@ claude --plugin-dir plugin               # run the checkout for one terminal ses
 claude plugin validate .
 claude plugin validate --strict plugin
 claude plugin test plugin
+node tools/make-hero.mts                 # regenerate docs/band.svg; CI compares it byte for byte
 ```
 
 A fresh clone runs all of it with no secrets and no install step beyond
@@ -53,4 +54,6 @@ per commit.
 If your change alters behaviour, interfaces, or project state, the docs it makes
 stale are part of the diff: the README's rows example, its "What it reads and
 writes" table and its limits; the list of what the band must keep doing in
-AGENTS.md; and the "What this plugin does" section of SECURITY.md.
+AGENTS.md; and the "What this plugin does" section of SECURITY.md. A change to a row's
+text, marks or styles also stales `docs/band.svg`, which CI checks, and
+`docs/social-card.png`, which nothing checks.
