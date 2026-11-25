@@ -54,8 +54,9 @@ says otherwise.
   reload, and a list stored under the old type would be drawn with fields
   missing. No test.
 
-Both hover cards are pinned by tests. The agents row's card, and every color,
-have not been watched on a real surface.
+Both hover cards are pinned by tests and have been watched in the desktop app,
+with the colors, the paused row and the cut at a narrow width. In a real
+terminal no row has been watched.
 
 ## The plan source is not a documented interface
 

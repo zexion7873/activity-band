@@ -97,9 +97,8 @@ or to the per-plugin store, and nothing outlives the session.
   always mean the agent is waiting for you.
 - **Width is counted in terminal cells.** A CJK character counts as two. In the
   desktop app, whose font is proportional, the count is an estimate.
-- **Covered by tests, not yet watched.** The marks, the colors, the paused row
-  and the fitting to the width are pinned by the tests and have not been
-  watched in a real session, in the terminal or the desktop app.
+- **Watched in the desktop app only.** In the terminal the rows are covered by
+  the tests and have not been watched in a real session.
 
 ## License
 
