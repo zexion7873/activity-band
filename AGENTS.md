@@ -157,7 +157,12 @@ regenerating it after that changes the file and not the listing.
 npm, then validates the marketplace and the plugin (strict), runs the tests
 and compares the committed hero with a fresh one, on every PR and push to
 `main`. The pin is the version the README's
-install section names; bump both together.
+install section and `llms-install.md` name; bump all three together.
 
 The version line in `plugin/.claude-plugin/plugin.json` landing on `main` is
-the publish; a tag or a GitHub release publishes nothing.
+the publish; a tag or a GitHub release publishes nothing. After a release
+merges, tag its merge commit with an annotated `vX.Y.Z` (`git tag -a vX.Y.Z
+<merge> -m "activity-band X.Y.Z"`), push the tag, then
+`gh release create vX.Y.Z --verify-tag --title vX.Y.Z --notes-file <notes>`:
+the notes say what changed for someone who has the mod installed, plus a
+compare link to the previous tag. Every release since 0.1.0 has both.
