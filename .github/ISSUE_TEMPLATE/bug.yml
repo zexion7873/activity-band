@@ -1,0 +1,67 @@
+name: Bug report
+description: A row is missing, stale, or shows something other than what the session is doing
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One question first: when the plan row was missing, did the desktop app
+        show its own task list under Claude's latest message? The plan row
+        follows that list, so with no list there is nothing to draw. A
+        terminal session never has one and shows the agents row alone.
+
+  - type: input
+    id: version
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`, or the version in the desktop app's About window.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where you saw it
+      options:
+        - Desktop app
+        - Terminal
+    validations:
+      required: true
+
+  - type: dropdown
+    id: row
+    attributes:
+      label: Which row
+      options:
+        - Plan row
+        - Agents row
+        - Both
+        - A hover card
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected instead
+      description: The band's text as it was drawn, copied or in a screenshot, beside what the app's own task list or agent panel showed at that moment.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to make it happen again
+      description: If you cannot reproduce it, say so. An intermittent report with real timestamps beats a confident guess.
+      placeholder: |
+        1. Ask Claude for a task that keeps a task list and starts a subagent
+        2. Watch the rows above the prompt while the subagent runs
+        3. The agents row still says 1 after the subagent's report arrived
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before submitting
+      options:
+        - label: I saw this happen myself, while the turn was running.
+          required: true

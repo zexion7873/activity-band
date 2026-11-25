@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/zexion7873/activity-band/security/advisories/new
+    about: Do not open a public issue. This repository is what people install the mod from, so a public report reaches every install before a fix does.
