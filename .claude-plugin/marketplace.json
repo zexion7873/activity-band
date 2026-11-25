@@ -1,0 +1,12 @@
+{
+  "name": "activity-band",
+  "owner": { "name": "Kevin Lin" },
+  "description": "activity-band: the plan step in progress and the subagents still running, above the Claude Code prompt",
+  "plugins": [
+    {
+      "name": "activity-band",
+      "source": "./plugin",
+      "description": "Band above the prompt: the plan step in progress and the subagents still running"
+    }
+  ]
+}

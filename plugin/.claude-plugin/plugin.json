@@ -1,0 +1,15 @@
+{
+  "name": "activity-band",
+  "version": "0.1.0",
+  "description": "Band above the prompt: the plan step in progress and the subagents still running",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Kevin Lin"
+  },
+  "keywords": ["claude-code-mod", "band", "plan", "subagents", "overlay"],
+  "homepage": "https://github.com/zexion7873/activity-band#readme",
+  "repository": "https://github.com/zexion7873/activity-band",
+  "documentationUrl": "https://github.com/zexion7873/activity-band#readme",
+  "supportUrl": "https://github.com/zexion7873/activity-band/issues",
+  "privacyPolicyUrl": "https://github.com/zexion7873/activity-band/blob/main/SECURITY.md#what-this-plugin-does"
+}
