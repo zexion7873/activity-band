@@ -50,6 +50,19 @@ With no plan and no agent at work the mod draws nothing.
 
 Needs a Claude Code build with function-hook plugins; tested against 2.1.330.
 
+### Hand it to your agent
+
+Paste this and walk away:
+
+```text
+Fetch and follow https://raw.githubusercontent.com/zexion7873/activity-band/main/llms-install.md
+```
+
+It installs from the CLI and checks the install. The recipe is in
+[llms-install.md](llms-install.md).
+
+### Or type it yourself
+
 At the prompt of a terminal session:
 
 ```

@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 24
       - name: Claude Code, pinned
-        # Bump together with the README's install section. 2.1.325's AgentInfo has no startTime, which --strict refuses.
+        # Bump together with the README's install section and llms-install.md. 2.1.325's AgentInfo has no startTime, which --strict refuses.
         run: npm install -g @anthropic-ai/claude-code@2.1.330 && claude --version
       - name: validate the marketplace
         run: claude plugin validate .

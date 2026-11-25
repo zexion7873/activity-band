@@ -54,6 +54,7 @@ per commit.
 If your change alters behaviour, interfaces, or project state, the docs it makes
 stale are part of the diff: the README's rows example, its "What it reads and
 writes" table and its limits; the list of what the band must keep doing in
-AGENTS.md; and the "What this plugin does" section of SECURITY.md. A change to a row's
+AGENTS.md; and the "What this plugin does" section of SECURITY.md. A change to how the
+mod is installed, updated or checked stales `llms-install.md`. A change to a row's
 text, marks or styles also stales `docs/band.svg`, which CI checks, and
 `docs/social-card.png`, which nothing checks.
