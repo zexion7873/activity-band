@@ -24,10 +24,11 @@ says otherwise.
   reads as a broken mod.
 - **Record only a call that went through.** A plan call that was refused
   changes nothing. The same guard skips one that errored, which no test covers.
-- **Never fail what it watches.** The `tool.call`, `agent.spawn` and
-  `turn.start` hooks return the result of `next(e)` whatever happens to their
-  own recording: each write ends in `.catch`. No test yet: in the harness a
-  failing `agent.list` does not fail the spawn with or without the catch.
+- **Never fail what it watches.** The `tool.call`, `agent.spawn`, `turn.start`
+  and `turn.complete` hooks return the result of `next(e)` whatever happens to
+  their own recording, and the timer's read fails nothing either: each write
+  ends in `.catch`. No test: in the harness a failing `agent.list` fails
+  neither a spawn nor the end of a turn, with or without the catch.
 - **Ignore a subagent's plan calls.** A call with an `agentId` is not the plan
   the user sees.
 - **Empty the plan row at wrap-up.** The app checks the whole list off there,
@@ -75,10 +76,9 @@ says otherwise.
   missing. No test.
 
 Both hover cards are pinned by tests and have been watched in the desktop app,
-with the colors, the paused row and the cut at a narrow width. Not watched
-there: a plan held paused through a later turn, a plan drawn without its marks,
-and an agent drawn without its type. In a real terminal no row has been
-watched.
+with the colors, the paused row, a plan held paused through a later turn, the
+cut at a narrow width, a plan drawn without its marks and an agent drawn
+without its type. In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
 

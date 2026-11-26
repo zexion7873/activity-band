@@ -30,10 +30,12 @@ const quiet = () => {}
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     // An agent can stop with no event this plugin hears, and the elapsed minutes are read while drawing.
-    $.clock.every(30_000, async () => {
-      const list = active(await $.agent.list())
-      await update($, agents, () => list)
-    })
+    $.clock.every(30_000, () =>
+      $.agent
+        .list()
+        .then(list => update($, agents, () => active(list)))
+        .catch(quiet),
+    )
     return next(e)
   })
 
@@ -73,9 +75,12 @@ export const register: Register = on => {
 
   // A subagent's own turn.complete already finds it listed as completed.
   on('turn.complete', async ($, e, next) => {
-    const list = active(await $.agent.list())
-    await update($, agents, () => list)
-    return next(e)
+    const r = await next(e)
+    await $.agent
+      .list()
+      .then(list => update($, agents, () => active(list)))
+      .catch(quiet)
+    return r
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
