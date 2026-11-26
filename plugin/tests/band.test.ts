@@ -428,11 +428,11 @@ test('desktop agents card draws only the description at full strength', async ($
 })
 
 test('done and start mark steps by their 1-based number', () => {
-  expect(applyPlan(PLAN, { done: [2], start: 3 }).map(s => s.status)).toEqual(['completed', 'completed', 'in_progress'])
+  expect(applyPlan(PLAN, { done: [2], start: 3 }, NOW).map(s => s.status)).toEqual(['completed', 'completed', 'in_progress'])
 })
 
 test('a malformed step list leaves the plan as it was', () => {
-  expect(applyPlan(PLAN, { items: [{ content: 'no status' }] })).toEqual(PLAN)
+  expect(applyPlan(PLAN, { items: [{ content: 'no status' }] }, NOW)).toEqual(PLAN)
 })
 
 test('plan row stays paused through a later turn that leaves the plan alone', async ($, on) => {
@@ -461,11 +461,57 @@ test('plan row stays paused through a later turn that leaves the plan alone', as
   expect(await row()).toBe('plan ▮▮▯ ▶ run the tests')
 })
 
+test('a step is stamped when it becomes in progress, and keeps its stamp while it stays so', () => {
+  const LATER = NOW + 60_000
+  const first = applyPlan([], { items: PLAN }, NOW)
+  expect(first).toEqual([
+    { content: 'read the code', status: 'completed' },
+    { content: 'write the fix', status: 'in_progress', startedAt: NOW },
+    { content: 'run the tests', status: 'pending' },
+  ])
+  // The whole list sent again leaves a step still in progress with the time it began.
+  expect(applyPlan(first, { items: PLAN }, LATER)).toEqual(first)
+  expect(applyPlan(first, { advance: true }, LATER)).toEqual([
+    { content: 'read the code', status: 'completed' },
+    { content: 'write the fix', status: 'completed' },
+    { content: 'run the tests', status: 'in_progress', startedAt: LATER },
+  ])
+  expect(applyPlan(first, { done: [2], start: 3 }, LATER)[2]).toEqual({
+    content: 'run the tests',
+    status: 'in_progress',
+    startedAt: LATER,
+  })
+  expect(applyPlan(first, { start: 2 }, LATER)[1]).toEqual({ content: 'write the fix', status: 'in_progress', startedAt: NOW })
+})
+
+test('plan row says how long the step in progress has run, from a minute on and while a turn runs', () => {
+  const since = (minutes: number) => applyPlan([], { items: PLAN }, NOW - minutes * 60_000)
+  expect(text(planRow(since(0.5), true, 100, NOW))).toBe('plan ▮▯▯ ▶ write the fix → run the tests')
+  expect(text(planRow(since(4), true, 100, NOW))).toBe('plan ▮▯▯ ▶ write the fix 4m → run the tests')
+  expect(planRow(since(4), true, 100, NOW).find(([t]) => t === ' 4m')?.[1]).toEqual({ dimColor: true })
+  expect(text(planRow(since(4), false, 100, NOW))).toBe('plan ▮▯▯ ‖ write the fix')
+  // 11 cells of head and 3 of minutes leave 6: the step's text gives way, the minutes do not.
+  expect(text(planRow(since(4), true, 20, NOW))).toBe('plan ▮▯▯ ▶ write… 4m')
+})
+
+test('plan row counts a step from the plan call that started it', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  await call($, UPDATE_PLAN, { items: PLAN })
+  await clock.advance(4 * 60_000)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text).toBe(
+    'plan ▮▯▯ ▶ write the fix 4m → run the tests',
+  )
+  await ui.unmount()
+})
+
 test('plan row gives its marks up for a count before the step in progress loses its room', () => {
-  expect(text(planRow(LONG_PLAN, true, 100))).toBe(
+  expect(text(planRow(LONG_PLAN, true, 100, NOW))).toBe(
     'plan 12/30 done ▶ step number 13 with a longer description → step number 14 with a longer descripti…',
   )
-  expect(text(planRow(LONG_PLAN, true, 40))).toBe('plan 12/30 done ▶ step number 13 with a…')
+  expect(text(planRow(LONG_PLAN, true, 40, NOW))).toBe('plan 12/30 done ▶ step number 13 with a…')
 })
 
 test('plan row gives every step in progress the accent mark', () => {
@@ -474,7 +520,7 @@ test('plan row gives every step in progress the accent mark', () => {
     { content: 'b', status: 'in_progress' },
     { content: 'c', status: 'pending' },
   ]
-  const marks = planRow(steps, true, 100).filter(([t]) => t === '▯')
+  const marks = planRow(steps, true, 100, NOW).filter(([t]) => t === '▯')
   expect(marks.map(([, style]) => style?.color)).toEqual(['claude', 'claude', undefined])
 })
 
@@ -485,8 +531,8 @@ test('plan row shows the pause mark with no step in progress and no turn running
     { content: 'c', status: 'pending' },
     { content: 'd', status: 'pending' },
   ]
-  expect(text(planRow(steps, false, 100))).toBe('plan ▮▮▯▯ ‖')
-  expect(text(planRow(steps, true, 100))).toBe('plan ▮▮▯▯')
+  expect(text(planRow(steps, false, 100, NOW))).toBe('plan ▮▮▯▯ ‖')
+  expect(text(planRow(steps, true, 100, NOW))).toBe('plan ▮▮▯▯')
 })
 
 test('agents row shows every agent whose description has room, and hands spare cells to a longer one', () => {
@@ -616,8 +662,9 @@ test('a run of an hour or more is written in hours', () => {
 test('no row is wider than the width it was given', () => {
   const widths = Array.from({ length: 120 }, (_, i) => i + 1)
   const over = (row: (cols: number) => Span[]) => widths.filter(cols => cells(text(row(cols))) > cols)
-  expect(over(cols => planRow(LONG_PLAN, true, cols))).toEqual([])
-  expect(over(cols => planRow(PLAN, false, cols))).toEqual([])
+  expect(over(cols => planRow(LONG_PLAN, true, cols, NOW))).toEqual([])
+  expect(over(cols => planRow(PLAN, false, cols, NOW))).toEqual([])
+  expect(over(cols => planRow(applyPlan([], { items: PLAN }, NOW - 200 * 60_000), true, cols, NOW))).toEqual([])
   expect(over(cols => agentsRow(TWO_AGENTS, NOW, cols))).toEqual([])
   expect(over(cols => agentsRow(LONG_TYPE, NOW, cols))).toEqual([])
 })

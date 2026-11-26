@@ -82,7 +82,7 @@ export const agentHead = (a: ActivityAgent, now: number): Span[] => {
   ]
 }
 
-export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
+export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number, now: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
   const current = steps.find(s => s.status === 'in_progress')
   const done = steps.filter(s => s.status === 'completed').length
@@ -103,9 +103,13 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
     return fit(row, cols)
   }
 
-  const room = cols - 'plan '.length - marks.length - count.length - 3
+  // A paused step is not running, and under a minute the time says nothing a new step does not.
+  const since = isWorking ? current.startedAt : undefined
+  const ran = since !== undefined && now - since >= 60_000 ? ` ${elapsed(now, since)}` : ''
+  const room = cols - 'plan '.length - marks.length - count.length - 3 - ran.length
   const label = clip(current.content, room)
   row.push([` ${isWorking ? MARK.in_progress : PAUSE} `, tone('claude')], [label, isWorking ? { weight: 'semibold' } : DIM])
+  if (ran !== '') row.push([ran, DIM])
 
   const next = steps.slice(steps.indexOf(current) + 1).find(s => s.status === 'pending')
   const nextRoom = room - cells(label) - 3

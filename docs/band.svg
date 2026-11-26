@@ -8,7 +8,8 @@
 <rect x="90.5" y="19" width="3" height="7.1" fill="none" stroke="#9b9993" stroke-width="1"/>
 <polygon points="105.4,18.5 110.6,22.6 105.4,26.6" fill="#d77757"/>
 <text x="120" y="27" textLength="104" fill="#e8e6e3" font-weight="600">write the fix</text>
-<text x="232" y="27" textLength="120" fill="#9b9993">→ run the tests</text>
+<text x="232" y="27" textLength="16" fill="#9b9993">4m</text>
+<text x="256" y="27" textLength="120" fill="#9b9993">→ run the tests</text>
 <text x="16" y="48" textLength="64" fill="#9b9993">agents 2</text>
 <text x="88" y="48" textLength="128" fill="#9b9993">general-purpose:</text>
 <text x="224" y="48" textLength="120" fill="#e8e6e3">review the diff</text>

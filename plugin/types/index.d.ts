@@ -1,6 +1,7 @@
 export type PlanStatus = 'pending' | 'in_progress' | 'completed'
 
-export type PlanStep = { content: string; status: PlanStatus }
+// startedAt: when the step became in progress; absent on any other.
+export type PlanStep = { content: string; status: PlanStatus; startedAt?: number }
 
 export type ActivityAgent = {
   id: string
@@ -22,6 +23,6 @@ export type ActivityAgent = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'activity-band': { plan: PlanStep[]; agents: Shaped<ActivityAgent[]>; stale: boolean }
+    'activity-band': { plan: Shaped<PlanStep[]>; agents: Shaped<ActivityAgent[]>; stale: boolean }
   }
 }

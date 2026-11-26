@@ -15,7 +15,7 @@ const NOW = Date.UTC(2026, 10, 25, 12)
 const STEPS = [
   { content: 'read the code', status: 'completed' },
   { content: 'find the cause', status: 'completed' },
-  { content: 'write the fix', status: 'in_progress' },
+  { content: 'write the fix', status: 'in_progress', startedAt: NOW - 4 * 60_000 },
   { content: 'run the tests', status: 'pending' },
   { content: 'update the docs', status: 'pending' },
 ] as const
@@ -25,7 +25,7 @@ const AGENTS = [
 ]
 
 export const sample = (cols: number): { plan: Span[]; agents: Span[] } => ({
-  plan: planRow(STEPS, true, cols),
+  plan: planRow(STEPS, true, cols, NOW),
   agents: agentsRow(AGENTS, NOW, cols),
 })
 
