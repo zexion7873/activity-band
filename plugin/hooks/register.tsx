@@ -1,14 +1,14 @@
 import { atom, read, update } from 'claude-code'
-import type { AgentInfo, Register, TextProps } from 'claude-code'
+import type { AgentInfo, Hook, Register, TextProps } from 'claude-code'
 
 import type { ActivityAgent, PlanStep } from '../types'
 import { applyPlan, finishPlan } from './plan'
-import { agentsRow, clip, elapsed, planRow, SEP, stepLine } from './rows'
+import { agentHead, agentsRow, clip, planRow, stepLine } from './rows'
 import type { Span } from './rows'
 
 const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[])
 // Change the tag with ActivityAgent: a reload then reads the stored list as empty, not as agents missing a field.
-const agents = atom({ plugin: 'activity-band', key: 'agents' } as const, [] as ActivityAgent[], { shape: 'agents-2' })
+const agents = atom({ plugin: 'activity-band', key: 'agents' } as const, [] as ActivityAgent[], { shape: 'agents-3' })
 // True from a main turn's start until that turn writes the plan: steps an earlier turn left are not this turn's work.
 const stale = atom({ plugin: 'activity-band', key: 'stale' } as const, false)
 
@@ -16,23 +16,33 @@ const CARD_COLS = 100
 // The engine lists a finished agent until it drops its task; only these are still at work.
 const ACTIVE: readonly string[] = ['pending', 'running', 'waiting', 'idle']
 
-const active = (list: readonly AgentInfo[]): ActivityAgent[] =>
-  list
-    .filter(a => ACTIVE.includes(a.status))
-    .map(({ id, type, description, label, status, startTime }) => ({ id, type, description, label, status, startTime }))
+const ENDED: readonly string[] = ['failed', 'killed']
+// How long one that failed or was stopped stays on the row.
+const ENDED_SHOWN = 5 * 60_000
+
+const track = (prev: readonly ActivityAgent[], list: readonly AgentInfo[], now: number): ActivityAgent[] =>
+  list.flatMap(({ id, type, description, label, status, startTime }): ActivityAgent[] => {
+    const a = { id, type, description, label, status, startTime }
+    if (ACTIVE.includes(status)) return [a]
+    // The engine goes on listing one that failed; only one this mod saw at work ended on its watch.
+    const was = prev.find(p => p.id === id)
+    if (!ENDED.includes(status) || was === undefined) return []
+    const endedAt = was.endedAt ?? now
+    return now - endedAt < ENDED_SHOWN ? [{ ...a, endedAt }] : []
+  })
 
 // A band that fails to record must not fail the tool call or spawn it watches.
 const quiet = () => {}
 
+const refresh = ($: Parameters<Hook<'agent.spawn'>>[0]) =>
+  Promise.all([$.agent.list(), $.clock.now()])
+    .then(([list, now]) => update($, agents, prev => track(prev, list, now)))
+    .catch(quiet)
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     // An agent can stop with no event this plugin hears, and the elapsed minutes are read while drawing.
-    $.clock.every(30_000, () =>
-      $.agent
-        .list()
-        .then(list => update($, agents, () => active(list)))
-        .catch(quiet),
-    )
+    $.clock.every(30_000, () => refresh($))
     return next(e)
   })
 
@@ -63,20 +73,14 @@ export const register: Register = on => {
 
   on('agent.spawn', async ($, e, next) => {
     const r = await next(e)
-    await $.agent
-      .list()
-      .then(list => update($, agents, () => active(list)))
-      .catch(quiet)
+    await refresh($)
     return r
   })
 
   // A subagent's own turn.complete already finds it listed as completed.
   on('turn.complete', async ($, e, next) => {
     const r = await next(e)
-    await $.agent
-      .list()
-      .then(list => update($, agents, () => active(list)))
-      .catch(quiet)
+    await refresh($)
     return r
   })
 
@@ -136,14 +140,7 @@ export const register: Register = on => {
             <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} flexDirection="column">
               {working.flatMap(a => {
                 const summary = a.label.trim().replace(/\n[\s\S]*/, '')
-                const head = line(
-                  [
-                    [`${a.status}${SEP}${a.type}: `, { dimColor: true }],
-                    [a.description],
-                    [` ${elapsed(now, a.startTime)}`, { dimColor: true }],
-                  ],
-                  { key: a.id },
-                )
+                const head = line(agentHead(a, now), { key: a.id })
                 if (summary === '' || summary === a.description) return [head]
                 return [
                   head,

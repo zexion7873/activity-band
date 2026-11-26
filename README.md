@@ -42,7 +42,10 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   description is the one part at full strength; the type and the minutes are
   dim beside it. On a row too narrow for both, the type is cut and then left
   out before the description is. One that is not running shows its status
-  before the minutes. It leaves when the last one finishes.
+  before the minutes. One that failed or was stopped stays for five minutes
+  as `failed 3m` (in the error color) or `stopped 3m`, the minutes being how
+  long it ran, and is counted while it stays. The row leaves when no agent is
+  left on it.
 - **A card on hover** (desktop app): every step with its mark (`▮` done, `▶` in
   progress, `▯` pending) over the plan row; every working agent with its status
   over the agents row, and under it the first line of its latest progress

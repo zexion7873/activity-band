@@ -55,8 +55,23 @@ export const elapsed = (now: number, startTime: number) => {
   return `${Math.floor(minutes / 60)}h${minutes % 60 === 0 ? '' : `${minutes % 60}m`}`
 }
 
-const tail = (a: ActivityAgent, now: number) =>
-  a.status === 'running' ? elapsed(now, a.startTime) : `${a.status} ${elapsed(now, a.startTime)}`
+// `killed` is the engine's word for an agent that was stopped.
+const word = (a: ActivityAgent) => (a.status === 'killed' ? 'stopped' : a.status)
+
+// One that ended shows how long it ran, which stands still while it stays on the row.
+const time = (a: ActivityAgent, now: number) => elapsed(a.endedAt ?? now, a.startTime)
+
+const tail = (a: ActivityAgent, now: number) => (a.status === 'running' ? time(a, now) : `${word(a)} ${time(a, now)}`)
+
+// A stop is most often the person's own; only a failure is news in a color.
+const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'failed' ? { color: 'error' } : DIM)
+
+export const agentHead = (a: ActivityAgent, now: number): Span[] => [
+  [word(a), statusStyle(a)],
+  [`${SEP}${a.type}: `, DIM],
+  [a.description],
+  [` ${time(a, now)}`, DIM],
+]
 
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
@@ -127,7 +142,7 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     // The description says which agent this is; its type and what parts two agents are dim beside it.
     const lead = `${i > 0 ? SEP : ''}${prefix}`
     if (lead !== '') row.push([lead, DIM])
-    row.push([description], [` ${tail(a, now)}`, DIM])
+    row.push([description], [` ${tail(a, now)}`, statusStyle(a)])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)

@@ -35,6 +35,11 @@ says otherwise.
   and sends no plan update saying so.
 - **Filter the agent list by status.** The engine keeps a finished agent
   listed, and a subagent's own `turn.complete` already finds it `completed`.
+- **Say when an agent failed or was stopped, for five minutes.** One the mod
+  saw at work and then finds `failed` or `killed` stays on the row under its
+  outcome (`failed` in the error color, `stopped` dim), its minutes standing
+  still at how long it ran. One already ended when the mod first lists it is
+  left out: the engine goes on listing it, and after a reload it is not news.
 - **Keep the timer.** An agent can stop with no event this mod hears, and the
   elapsed minutes are computed while drawing, so `session.start` arms
   `$.clock.every(30_000, …)`.

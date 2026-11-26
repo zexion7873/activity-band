@@ -192,10 +192,49 @@ test('agents row leaves within a tick when an agent stops with no event', async 
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /agents 1/ })).toBeDefined()
 
-  listed = [agent('a1', 'map the hooks', 'killed', 0)]
+  listed = [agent('a1', 'map the hooks', 'completed', 0)]
   await clock.advance(30_000)
   expect(await ui.find({ type: 'Text' })).toBeUndefined()
   await ui.unmount()
+})
+
+test('agents row keeps an agent that failed or was stopped for five minutes, under its outcome', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  const old = agent('a0', 'old job', 'failed', 10)
+  let listed = [agent('a1', 'map the hooks', 'running', 3), agent('a2', 'read the tests', 'running', 2), old]
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: listed }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.agent.spawn(SPAWN)
+
+  const texts = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const found = await ui.findAll({ type: 'Text' })
+    await ui.unmount()
+    return found
+  }
+  const row = async () => (await texts()).find(t => t.props.wrap !== undefined)?.text
+  // One that had failed before the mod saw it at work is not news.
+  expect(await row()).toBe('agents 2 Explore: map the hooks 3m · Explore: read the tests 2m')
+
+  listed = [agent('a1', 'map the hooks', 'failed', 3), agent('a2', 'read the tests', 'killed', 2), old]
+  await clock.advance(30_000)
+  const ENDED = 'agents 2 Explore: map the hooks failed 3m · Explore: read the tests stopped 2m'
+  expect(await row()).toBe(ENDED)
+  const style = async (text: string) => {
+    const props = (await texts()).find(t => t.text === text)?.props
+    return [props?.color, props?.dimColor]
+  }
+  expect(await style(' failed 3m')).toEqual(['error', undefined])
+  expect(await style(' stopped 2m')).toEqual([undefined, true])
+
+  // Four and a half minutes after they were seen ended: still there, and the minutes are how long each ran.
+  await clock.advance(270_000)
+  expect(await row()).toBe(ENDED)
+  await clock.advance(30_000)
+  expect(await row()).toBeUndefined()
 })
 
 test("a subagent's plan call is not the session's plan", async ($, on) => {
@@ -323,6 +362,24 @@ test('agents row shows as many agents as the width holds', async ($, on) => {
   )
 })
 
+test('desktop agents card names a failed agent in the error color', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  let listed = [agent('a1', 'map the hooks', 'running', 3)]
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: listed }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.agent.spawn(SPAWN)
+  listed = [agent('a1', 'map the hooks', 'failed', 3)]
+  await clock.advance(30_000)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /^failed · Explore: map the hooks 3m$/ })).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^failed$/ }))?.props.color).toBe('error')
+  await ui.unmount()
+})
+
 test("desktop agents card adds an agent's progress line when it has one", async ($, on) => {
   mock.clock(on, { now: NOW })
   engine(on)
@@ -353,7 +410,8 @@ test('desktop agents card draws only the description at full strength', async ($
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   const texts = await ui.findAll({ type: 'Text' })
-  expect(texts.find(t => t.text === 'running · Explore: ')?.props.dimColor).toBe(true)
+  expect(texts.find(t => t.text === 'running')?.props.dimColor).toBe(true)
+  expect(texts.find(t => t.text === ' · Explore: ')?.props.dimColor).toBe(true)
   // One on the row and one in the card.
   expect(texts.filter(t => t.text === 'map the hooks' && t.props.dimColor === undefined).length).toBe(2)
   expect(texts.filter(t => t.text === ' 3m' && t.props.dimColor === true).length).toBe(2)

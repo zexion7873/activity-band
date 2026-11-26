@@ -9,6 +9,8 @@ export type ActivityAgent = {
   label: string
   status: string
   startTime: number
+  // When the mod first found it failed or killed; set only on one it had seen at work.
+  endedAt?: number
 }
 
 declare module 'claude-code' {
