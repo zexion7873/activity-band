@@ -3,7 +3,7 @@ import type { AgentInfo, Register, TextProps } from 'claude-code'
 
 import type { ActivityAgent, PlanStep } from '../types'
 import { applyPlan, finishPlan } from './plan'
-import { agentsRow, clip, elapsed, planRow, SEP, statusStyle, stepLine } from './rows'
+import { agentsRow, clip, elapsed, planRow, SEP, stepLine } from './rows'
 import type { Span } from './rows'
 
 const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[])
@@ -20,9 +20,6 @@ const active = (list: readonly AgentInfo[]): ActivityAgent[] =>
   list
     .filter(a => ACTIVE.includes(a.status))
     .map(({ id, type, description, label, status, startTime }) => ({ id, type, description, label, status, startTime }))
-
-const waitingFirst = (list: readonly ActivityAgent[]) =>
-  [...list].sort((a, b) => Number(b.status === 'waiting') - Number(a.status === 'waiting'))
 
 // A band that fails to record must not fail the tool call or spawn it watches.
 const quiet = () => {}
@@ -88,7 +85,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey) return below
 
     const steps = await read($, plan)
-    const working = waitingFirst(await read($, agents))
+    const working = await read($, agents)
     const hasPlan = steps.some(s => s.status !== 'completed')
     if (!hasPlan && working.length === 0) return below
 
@@ -140,7 +137,7 @@ export const register: Register = on => {
               {working.flatMap(a => {
                 const summary = a.label.trim().replace(/\n[\s\S]*/, '')
                 const head = line(
-                  [[a.status, statusStyle(a)], [`${SEP}${a.type}: ${a.description} ${elapsed(now, a.startTime)}`]],
+                  [[a.status, { dimColor: true }], [`${SEP}${a.type}: ${a.description} ${elapsed(now, a.startTime)}`]],
                   { key: a.id },
                 )
                 if (summary === '' || summary === a.description) return [head]

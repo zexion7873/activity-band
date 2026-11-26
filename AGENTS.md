@@ -76,7 +76,11 @@ says otherwise.
   both, the type is cut, then left out; it tells the reader less than the
   description does, and a plugin's type can be any length.
 - **Say an agent's status in a word.** One that is not running shows the word
-  before its minutes; the warning color on `waiting` only adds to it.
+  before its minutes, dim like the minutes. `waiting` gets no color and no
+  place at the front: it is held on the agent's own background work, another
+  agent or a plan's approval, and nothing on `AgentInfo` tells one from
+  another (2.1.330), so a color would call for the person in cases that need
+  nobody.
 - **Change the agents shape tag with `ActivityAgent`.** State outlives a
   reload, and a list stored under the old type would be drawn with fields
   missing. No test.

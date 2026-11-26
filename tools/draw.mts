@@ -9,7 +9,6 @@ const COLOR: Record<string, string> = {
   dim: '#9b9993',
   success: '#4eba65',
   claude: '#d77757',
-  warning: '#ffc107',
 }
 
 const NOW = Date.UTC(2026, 10, 25, 12)

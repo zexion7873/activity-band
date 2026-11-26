@@ -56,8 +56,6 @@ export const elapsed = (now: number, startTime: number) => {
 const tail = (a: ActivityAgent, now: number) =>
   a.status === 'running' ? elapsed(now, a.startTime) : `${a.status} ${elapsed(now, a.startTime)}`
 
-export const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'waiting' ? { color: 'warning' } : DIM)
-
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
   const current = steps.find(s => s.status === 'in_progress')
@@ -124,7 +122,7 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     const room = extra + cells(`${a.type}: `) + need(a) - cells(prefix)
     const description = clip(a.description, room)
     extra = room - cells(description)
-    row.push([`${i > 0 ? SEP : ''}${prefix}${description}`], [` ${tail(a, now)}`, statusStyle(a)])
+    row.push([`${i > 0 ? SEP : ''}${prefix}${description}`], [` ${tail(a, now)}`, DIM])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)

@@ -277,7 +277,7 @@ test('plan row cuts a wide-character step by cells and drops the next step when 
   expect(await row(100)).toBe('plan ▮▯▯ ▶ 把殭屍列修好並補上測試 → 跑測試')
 })
 
-test('agents row puts a waiting agent first, named and colored', async ($, on) => {
+test('agents row names a waiting agent dim, in the order listed', async ($, on) => {
   mock.clock(on, { now: NOW })
   engine(on)
   on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
@@ -290,9 +290,10 @@ test('agents row puts a waiting agent first, named and colored', async ($, on) =
     const ui = await $.ui.mount({ ...BAND, surface })
     const texts = await ui.findAll({ type: 'Text' })
     expect(texts.map(t => t.text)).toContain(
-      'agents 2 Explore: review the diff waiting 5m · Explore: map the hooks 3m',
+      'agents 2 Explore: map the hooks 3m · Explore: review the diff waiting 5m',
     )
-    expect(texts.find(t => t.text === ' waiting 5m')?.props.color).toBe('warning')
+    const status = texts.find(t => t.text === ' waiting 5m')?.props
+    expect([status?.dimColor, status?.color]).toEqual([true, undefined])
     await ui.unmount()
   }
 })
