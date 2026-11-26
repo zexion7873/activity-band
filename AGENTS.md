@@ -92,7 +92,10 @@ says otherwise.
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row, a plan held paused through a later turn, the
 cut at a narrow width, a plan drawn without its marks and an agent drawn
-without its type. In a real terminal no row has been watched.
+without its type. Not watched there: the `▮` and `▯` marks on the row and in
+the plan card, a row with marks and no count, `12/30 done`, the dim type, a
+dim `waiting`, and a run written in hours. In a real terminal no row has been
+watched.
 
 ## The plan source is not a documented interface
 
