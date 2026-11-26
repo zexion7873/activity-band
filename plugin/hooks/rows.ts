@@ -7,7 +7,8 @@ const MIN_TEXT = 12
 // A type cut shorter than this names nothing, so it is left out instead.
 const MIN_TYPE = 4
 export const SEP = ' · '
-const MARK = { completed: '☑', in_progress: '▶', pending: '☐' } as const
+// ▮ and ▯ come from one font where the app's own has neither; a pair drawn from two fonts differs in size.
+const MARK = { completed: '▮', in_progress: '▶', pending: '▯' } as const
 const PAUSE = '‖'
 const DIM: TextProps = { dimColor: true }
 
@@ -49,13 +50,13 @@ const fit = (row: Span[], cols: number): Span[] => {
 
 export const elapsed = (now: number, startTime: number) => {
   const minutes = Math.floor((now - startTime) / 60_000)
-  return minutes < 1 ? '<1m' : `${minutes}m`
+  if (minutes < 1) return '<1m'
+  if (minutes < 60) return `${minutes}m`
+  return `${Math.floor(minutes / 60)}h${minutes % 60 === 0 ? '' : `${minutes % 60}m`}`
 }
 
 const tail = (a: ActivityAgent, now: number) =>
   a.status === 'running' ? elapsed(now, a.startTime) : `${a.status} ${elapsed(now, a.startTime)}`
-
-export const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'waiting' ? { color: 'warning' } : DIM)
 
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
@@ -65,9 +66,13 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
   const marks =
     steps.length * 4 > cols
       ? []
-      : steps.map((s): Span => (s.status === 'completed' ? ['▰', tone('success')] : ['▱', s.status === 'in_progress' ? tone('claude') : DIM]))
-  const count = `${marks.length > 0 ? ' ' : ''}${done}/${steps.length}`
-  const row: Span[] = [['plan ', DIM], ...marks, [count, { dimColor: true, tabular: true }]]
+      : steps.map((s): Span =>
+          s.status === 'completed' ? [MARK.completed, tone('success')] : [MARK.pending, s.status === 'in_progress' ? tone('claude') : DIM],
+        )
+  // Beside the marks a count reads as the number of the step after it, so it is written only in their place.
+  const count = marks.length > 0 ? '' : `${done}/${steps.length} done`
+  const row: Span[] = [['plan ', DIM], ...marks]
+  if (count !== '') row.push([count, { dimColor: true, tabular: true }])
   if (current === undefined) {
     // Between two steps a stopped plan differs from a live one by brightness alone without it.
     if (!isWorking && done < steps.length) row.push([` ${PAUSE}`, DIM])
@@ -119,7 +124,10 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     const room = extra + cells(`${a.type}: `) + need(a) - cells(prefix)
     const description = clip(a.description, room)
     extra = room - cells(description)
-    row.push([`${i > 0 ? SEP : ''}${prefix}${description}`], [` ${tail(a, now)}`, statusStyle(a)])
+    // The description says which agent this is; its type and what parts two agents are dim beside it.
+    const lead = `${i > 0 ? SEP : ''}${prefix}`
+    if (lead !== '') row.push([lead, DIM])
+    row.push([description], [` ${tail(a, now)}`, DIM])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)

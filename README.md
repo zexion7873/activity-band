@@ -4,7 +4,7 @@
 
 [![CI: check](https://github.com/zexion7873/activity-band/actions/workflows/check.yml/badge.svg)](https://github.com/zexion7873/activity-band/actions/workflows/check.yml)
 
-<img src="docs/band.svg" width="672" title="Drawn by the mod's own row builders from sample steps and agents, not a screenshot." alt="The band's two rows, drawn by the mod's own row builders from sample steps and agents rather than a screenshot. The plan row: five marks, two filled green for finished steps, one hollow in the accent color for the step in progress and two hollow grey for pending ones, then 2/5, a play mark and 'write the fix' in bold, then an arrow and the next step, 'run the tests', dimmed. The agents row: 'agents 2', then 'general-purpose: review the diff' with 'waiting 5m' in the warning color, then 'Explore: map the hooks' with '3m'.">
+<img src="docs/band.svg" width="672" title="Drawn by the mod's own row builders from sample steps and agents, not a screenshot." alt="The band's two rows, drawn by the mod's own row builders from sample steps and agents rather than a screenshot. The plan row: five upright marks, two filled green for finished steps, one hollow in the accent color for the step in progress and two hollow grey for pending ones, then a play mark and 'write the fix' in bold, then an arrow and the next step, 'run the tests', dimmed. The agents row: 'agents 2', then a dimmed 'general-purpose:' before 'review the diff' with a dimmed 'waiting 5m', then a dimmed 'Explore:' before 'map the hooks' with a dimmed '3m'.">
 
 **Shows the plan step in progress and the subagents still running, above the
 Claude Code prompt, so you need not open a panel to see where a turn is.**
@@ -25,25 +25,26 @@ subagents in a side panel. Scroll up, or close the panel, and both are out of
 sight. activity-band puts the two facts you look for on rows above the prompt:
 
 ```
-plan ▰▰▱▱▱ 2/5 ▶ write the fix → run the tests
+plan ▮▮▯▯▯ ▶ write the fix → run the tests
 agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3m
 ```
 
-- **The plan row:** one mark for each step (`▰` done, `▱` not yet), how many
-  are done out of how many, the step in progress, and the next step when the
-  row has room for it. A plan too long for its marks to fit in a quarter of
-  the row shows the count without them. It is drawn while a plan has a step
+- **The plan row:** one mark for each step (`▮` done, `▯` not yet), the step
+  in progress, and the next step when the row has room for it. A plan too
+  long for its marks to fit in a quarter of the row shows a count in their
+  place, as `12/30 done`. It is drawn while a plan has a step
   left, and leaves when the turn wraps up. A turn that stops before its
   wrap-up leaves the row dimmed, with `‖` in place of `▶`, and it stays that
   way through later turns until one of them updates the plan.
 - **The agents row:** how many subagents are still at work, then as many of
   them as the row has room for, as `type: description` with the minutes since
-  each started, then `+N` for the rest. On a row too narrow for both, the type
-  is cut and then left out before the description is. One that is not running
-  shows its status before the minutes, and a `waiting` one comes first, in the
-  warning color. It leaves when the last one finishes.
-- **A card on hover** (desktop app): every step with its mark (`☑` done, `▶` in
-  progress, `☐` pending) over the plan row; every working agent with its status
+  each started (`3h20m` from an hour on), then `+N` for the rest. The
+  description is the one part at full strength; the type and the minutes are
+  dim beside it. On a row too narrow for both, the type is cut and then left
+  out before the description is. One that is not running shows its status
+  before the minutes. It leaves when the last one finishes.
+- **A card on hover** (desktop app): every step with its mark (`▮` done, `▶` in
+  progress, `▯` pending) over the plan row; every working agent with its status
   over the agents row, and under it the first line of its latest progress
   summary when it has one.
 

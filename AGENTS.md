@@ -54,11 +54,17 @@ says otherwise.
   the work of whatever turn comes next. A subagent's `turn.start` marks
   nothing.
 - **Fill one mark for each finished step, no more.** Every step in progress is
-  a hollow mark in the accent color, so the filled marks agree with the count
-  and the row agrees with its card.
+  a hollow mark in the accent color, so the filled marks are the count of
+  finished steps and the row agrees with its card.
+- **Write the count only in the marks' place.** Beside the marks, `2/5 ▶ write
+  the fix` reads as "step 2 of 5", so a row with marks has no count, and one
+  without them says `12/30 done`.
 - **Let the marks give way before the step in progress.** A plan whose marks
   would take more than a quarter of the row is drawn with its count alone: the
   two say the same thing, and the step's text is what the row is for.
+- **Take both marks from one font.** `▮` and `▯` fall back to the same font
+  where the app's own has neither; a filled and a hollow mark from two fonts
+  differ in size on the desktop. Measured with CoreText, not pinned by a test.
 - **Count width in cells, not characters.** A CJK character takes two; a cut
   by `length` overflows `e.props.bodyColumns`.
 - **Hand back no row wider than its width.** Each builder ends in `fit`, so
@@ -69,8 +75,16 @@ says otherwise.
 - **Give up an agent's type before its description.** On a row too narrow for
   both, the type is cut, then left out; it tells the reader less than the
   description does, and a plugin's type can be any length.
+- **Leave an agent's description the one thing at full strength.** Its type,
+  its status and minutes, and the separator between two agents are dim, on
+  the row and in the card's head line: `general-purpose` says the least and
+  comes first.
 - **Say an agent's status in a word.** One that is not running shows the word
-  before its minutes; the warning color on `waiting` only adds to it.
+  before its minutes, dim like the minutes. `waiting` gets no color and no
+  place at the front: it is held on the agent's own background work, another
+  agent or a plan's approval, and nothing on `AgentInfo` tells one from
+  another (2.1.330), so a color would call for the person in cases that need
+  nobody.
 - **Change the agents shape tag with `ActivityAgent`.** State outlives a
   reload, and a list stored under the old type would be drawn with fields
   missing. No test.
@@ -78,7 +92,10 @@ says otherwise.
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row, a plan held paused through a later turn, the
 cut at a narrow width, a plan drawn without its marks and an agent drawn
-without its type. In a real terminal no row has been watched.
+without its type. Not watched there: the `▮` and `▯` marks on the row and in
+the plan card, a row with marks and no count, `12/30 done`, the dim type, a
+dim `waiting`, and a run written in hours. In a real terminal no row has been
+watched.
 
 ## The plan source is not a documented interface
 
