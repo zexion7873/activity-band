@@ -61,17 +61,26 @@ const word = (a: ActivityAgent) => (a.status === 'killed' ? 'stopped' : a.status
 // One that ended shows how long it ran, which stands still while it stays on the row.
 const time = (a: ActivityAgent, now: number) => elapsed(a.endedAt ?? now, a.startTime)
 
-const tail = (a: ActivityAgent, now: number) => (a.status === 'running' ? time(a, now) : `${word(a)} ${time(a, now)}`)
+// The word says what was measured, no request for this long; a long tool call is quiet and healthy.
+const QUIET_AFTER = 2 * 60_000
+const quiet = (a: ActivityAgent, now: number) =>
+  a.quietSince !== undefined && now - a.quietSince >= QUIET_AFTER ? `quiet ${elapsed(now, a.quietSince)}` : undefined
+
+const tail = (a: ActivityAgent, now: number) =>
+  a.status === 'running' ? (quiet(a, now) ?? time(a, now)) : `${word(a)} ${time(a, now)}`
 
 // A stop is most often the person's own; only a failure is news in a color.
 const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'failed' ? { color: 'error' } : DIM)
 
-export const agentHead = (a: ActivityAgent, now: number): Span[] => [
-  [word(a), statusStyle(a)],
-  [`${SEP}${a.type}: `, DIM],
-  [a.description],
-  [` ${time(a, now)}`, DIM],
-]
+export const agentHead = (a: ActivityAgent, now: number): Span[] => {
+  const still = quiet(a, now)
+  return [
+    [word(a), statusStyle(a)],
+    [`${SEP}${a.type}: `, DIM],
+    [a.description],
+    [` ${time(a, now)}${still === undefined ? '' : `${SEP}${still}`}`, DIM],
+  ]
+}
 
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)

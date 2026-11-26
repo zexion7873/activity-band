@@ -84,6 +84,11 @@ says otherwise.
   its status and minutes, and the separator between two agents are dim, on
   the row and in the card's head line: `general-purpose` says the least and
   comes first.
+- **Call a running agent quiet only by what was measured.** `quiet 4m` takes
+  the place of its minutes once its last request is two minutes old and every
+  recent token reading equals the count; the card shows both. A long tool
+  call is quiet and healthy, so the word is dim and claims no fault. Whether
+  the count moves while one answer streams is unmeasured.
 - **Say an agent's status in a word.** One that is not running shows the word
   before its minutes, dim like the minutes. `waiting` gets no color and no
   place at the front: it is held on the agent's own background work, another

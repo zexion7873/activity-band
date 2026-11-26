@@ -23,7 +23,8 @@ Worth knowing before you decide whether something is in scope.
   the task list (each step's text and status) and the turn's wrap-up, of which
   it uses only whether the call succeeded.
 - It reads the session's agent list: each agent's id, type, description,
-  latest progress summary, status and start time.
+  latest progress summary, status, start time, token count with its recent
+  readings, and the time of its last request.
 - It hears each turn start, of which it uses only whether the turn is the main
   conversation's or a subagent's. It does not read the prompt.
 - It keeps the task list, the agent list and whether the task list was left by

@@ -42,7 +42,8 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   description is the one part at full strength; the type and the minutes are
   dim beside it. On a row too narrow for both, the type is cut and then left
   out before the description is. One that is not running shows its status
-  before the minutes. One that failed or was stopped stays for five minutes
+  before the minutes. A running one that has sent no request for two minutes
+  shows `quiet 4m` in place of its minutes: how long since the last one. One that failed or was stopped stays for five minutes
   as `failed 3m` (in the error color) or `stopped 3m`, the minutes being how
   long it ran, and is counted while it stays. The row leaves when no agent is
   left on it.
@@ -94,7 +95,7 @@ plugin.
 | `turn.start` | only whether the turn is the main conversation's or a subagent's | marks the kept plan as left by an earlier turn, which draws it paused; the turn starts as it would |
 | `tool.call` (the desktop app's `update_plan`) | the call's arguments, after it ran: each step's text and status | the plan kept in the session's state, and clears that mark; the call and its result pass through untouched |
 | `tool.call` (the desktop app's `wrap_up`) | only whether the call succeeded | marks every step done, which empties the plan row |
-| `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status and start time | the list of working agents kept in the session's state |
+| `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status, start time, token count with its recent readings, and the time of its last request | the list of working agents kept in the session's state |
 | `ui.render` (`AbovePrompt`) | that state, the clock, the band's width and whether a turn is running | draws the rows, with whatever another mod drew on this mod's row kept above them |
 
 All three values live in the session's state, in memory. Nothing is written
@@ -115,6 +116,12 @@ to disk or to the per-plugin store, and nothing outlives the session.
   seconds, on a spawn, and when a turn ends.
 - **The app can hide the band.** While one of the desktop app's question boxes
   waits for an answer, the app hides every band, this one included.
+- **`quiet` is a measurement, not a verdict.** It means the agent's loop has
+  sent no request for that long while its token count stood still. A long
+  build or test run reads `quiet` and is healthy; so does an agent held on a
+  permission prompt, and one that hung. Whether the token count moves while
+  one long answer streams has not been measured; if it does not, such an
+  answer reads `quiet` too.
 - **`waiting` is the engine's word.** It marks an agent held on background
   work of its own, on a plan's approval, or on another agent. It does not
   always mean the agent is waiting for you.

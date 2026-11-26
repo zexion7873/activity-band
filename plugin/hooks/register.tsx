@@ -21,9 +21,11 @@ const ENDED: readonly string[] = ['failed', 'killed']
 const ENDED_SHOWN = 5 * 60_000
 
 const track = (prev: readonly ActivityAgent[], list: readonly AgentInfo[], now: number): ActivityAgent[] =>
-  list.flatMap(({ id, type, description, label, status, startTime }): ActivityAgent[] => {
+  list.flatMap(({ id, type, description, label, status, startTime, tokenCount, tokenSamples, lastRequest }): ActivityAgent[] => {
     const a = { id, type, description, label, status, startTime }
-    if (ACTIVE.includes(status)) return [a]
+    // A long answer still streaming moves the count, so a count that stands still is what makes an old request quiet.
+    const isStill = status === 'running' && lastRequest !== undefined && tokenSamples.every(n => n === tokenCount)
+    if (ACTIVE.includes(status)) return [isStill ? { ...a, quietSince: lastRequest.at } : a]
     // The engine goes on listing one that failed; only one this mod saw at work ended on its watch.
     const was = prev.find(p => p.id === id)
     if (!ENDED.includes(status) || was === undefined) return []

@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import { agentsRow, cells, elapsed, planRow } from '../hooks/rows'
+import { agentHead, agentsRow, cells, elapsed, planRow } from '../hooks/rows'
 import type { Span } from '../hooks/rows'
 import type { ActivityAgent, PlanStep } from '../types'
 
@@ -50,7 +50,16 @@ const SPAWN = {
 } as const
 
 const agent = (id: string, description: string, status: string, minutesAgo: number, label = description) =>
-  ({ id, type: 'Explore', description, status, label, startTime: NOW - minutesAgo * 60_000 }) as unknown as AgentInfo
+  ({
+    id,
+    type: 'Explore',
+    description,
+    status,
+    label,
+    startTime: NOW - minutesAgo * 60_000,
+    tokenCount: 0,
+    tokenSamples: [0],
+  }) as unknown as AgentInfo
 
 const engine = (on: On) => {
   on('tool.call', () => ({ result: {} }))
@@ -513,6 +522,39 @@ test('agents row gives up the type before the description', () => {
   expect(text(agentsRow(TWO_AGENTS, NOW, 45))).toBe('agents 2 general…: review the… waiting 5m +1')
   expect(text(agentsRow(TWO_AGENTS, NOW, 40))).toBe('agents 2 review the diff waiting 5m +1')
   expect(text(agentsRow(LONG_TYPE, NOW, 40))).toBe('agents 1 some-plugin:v…: do the thing 1m')
+})
+
+test('agents row says quiet once a running agent has sent no request for two minutes', () => {
+  const quietFor = (minutes: number): ActivityAgent => ({
+    ...working('Explore', 'map the hooks', 'running', 12),
+    quietSince: NOW - minutes * 60_000,
+  })
+  expect(text(agentsRow([quietFor(1.5)], NOW, 100))).toBe('agents 1 Explore: map the hooks 12m')
+  expect(text(agentsRow([quietFor(2)], NOW, 100))).toBe('agents 1 Explore: map the hooks quiet 2m')
+  expect(text(agentHead(quietFor(1.5), NOW))).toBe('running · Explore: map the hooks 12m')
+  expect(text(agentHead(quietFor(4), NOW))).toBe('running · Explore: map the hooks 12m · quiet 4m')
+})
+
+test('only a running agent whose token count stands still is quiet since its last request', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  const sent = { lastRequest: { at: NOW - 3 * 60_000, model: 'm' } }
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({
+    value: [
+      { ...agent('a1', 'map the hooks', 'running', 12), ...sent, tokenCount: 500, tokenSamples: [500, 500, 500] },
+      { ...agent('a2', 'read the tests', 'running', 5), ...sent, tokenCount: 500, tokenSamples: [400, 450, 500] },
+      { ...agent('a3', 'check the docs', 'running', 1), tokenCount: 0, tokenSamples: [0, 0] },
+      { ...agent('a4', 'review the diff', 'waiting', 5), ...sent, tokenCount: 500, tokenSamples: [500, 500] },
+    ] as AgentInfo[],
+  }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 200 }, surface: 'terminal' })
+  expect((await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text).toBe(
+    'agents 4 Explore: map the hooks quiet 3m · Explore: read the tests 5m · Explore: check the docs 1m · Explore: review the diff waiting 5m',
+  )
+  await ui.unmount()
 })
 
 test('a run of an hour or more is written in hours', () => {

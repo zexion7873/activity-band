@@ -11,6 +11,8 @@ export type ActivityAgent = {
   startTime: number
   // When the mod first found it failed or killed; set only on one it had seen at work.
   endedAt?: number
+  // When a running agent's loop last sent a request, kept only while its token count stands still.
+  quietSince?: number
 }
 
 declare module 'claude-code' {
