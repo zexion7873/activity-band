@@ -9,6 +9,15 @@ export type ActivityAgent = {
   label: string
   status: string
   startTime: number
+  // When the mod first found it failed or killed; set only on one it had seen at work.
+  endedAt?: number
+  // When a running agent's loop last sent a request, kept only while its token count stands still.
+  quietSince?: number
+  parentId?: string
+  model?: string
+  // The share of its model's context window its token count takes, in whole percent.
+  contextPercent?: number
+  costUsd?: number
 }
 
 declare module 'claude-code' {

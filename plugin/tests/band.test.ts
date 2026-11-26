@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import { agentsRow, cells, elapsed, planRow } from '../hooks/rows'
+import { agentFacts, agentHead, agentsRow, cells, elapsed, nested, planRow } from '../hooks/rows'
 import type { Span } from '../hooks/rows'
 import type { ActivityAgent, PlanStep } from '../types'
 
@@ -50,7 +50,16 @@ const SPAWN = {
 } as const
 
 const agent = (id: string, description: string, status: string, minutesAgo: number, label = description) =>
-  ({ id, type: 'Explore', description, status, label, startTime: NOW - minutesAgo * 60_000 }) as unknown as AgentInfo
+  ({
+    id,
+    type: 'Explore',
+    description,
+    status,
+    label,
+    startTime: NOW - minutesAgo * 60_000,
+    tokenCount: 0,
+    tokenSamples: [0],
+  }) as unknown as AgentInfo
 
 const engine = (on: On) => {
   on('tool.call', () => ({ result: {} }))
@@ -192,10 +201,49 @@ test('agents row leaves within a tick when an agent stops with no event', async 
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /agents 1/ })).toBeDefined()
 
-  listed = [agent('a1', 'map the hooks', 'killed', 0)]
+  listed = [agent('a1', 'map the hooks', 'completed', 0)]
   await clock.advance(30_000)
   expect(await ui.find({ type: 'Text' })).toBeUndefined()
   await ui.unmount()
+})
+
+test('agents row keeps an agent that failed or was stopped for five minutes, under its outcome', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  const old = agent('a0', 'old job', 'failed', 10)
+  let listed = [agent('a1', 'map the hooks', 'running', 3), agent('a2', 'read the tests', 'running', 2), old]
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: listed }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.agent.spawn(SPAWN)
+
+  const texts = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const found = await ui.findAll({ type: 'Text' })
+    await ui.unmount()
+    return found
+  }
+  const row = async () => (await texts()).find(t => t.props.wrap !== undefined)?.text
+  // One that had failed before the mod saw it at work is not news.
+  expect(await row()).toBe('agents 2 Explore: map the hooks 3m · Explore: read the tests 2m')
+
+  listed = [agent('a1', 'map the hooks', 'failed', 3), agent('a2', 'read the tests', 'killed', 2), old]
+  await clock.advance(30_000)
+  const ENDED = 'agents 2 Explore: map the hooks failed 3m · Explore: read the tests stopped 2m'
+  expect(await row()).toBe(ENDED)
+  const style = async (text: string) => {
+    const props = (await texts()).find(t => t.text === text)?.props
+    return [props?.color, props?.dimColor]
+  }
+  expect(await style(' failed 3m')).toEqual(['error', undefined])
+  expect(await style(' stopped 2m')).toEqual([undefined, true])
+
+  // Four and a half minutes after they were seen ended: still there, and the minutes are how long each ran.
+  await clock.advance(270_000)
+  expect(await row()).toBe(ENDED)
+  await clock.advance(30_000)
+  expect(await row()).toBeUndefined()
 })
 
 test("a subagent's plan call is not the session's plan", async ($, on) => {
@@ -323,6 +371,24 @@ test('agents row shows as many agents as the width holds', async ($, on) => {
   )
 })
 
+test('desktop agents card names a failed agent in the error color', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  let listed = [agent('a1', 'map the hooks', 'running', 3)]
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: listed }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.agent.spawn(SPAWN)
+  listed = [agent('a1', 'map the hooks', 'failed', 3)]
+  await clock.advance(30_000)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /^failed · Explore: map the hooks 3m$/ })).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^failed$/ }))?.props.color).toBe('error')
+  await ui.unmount()
+})
+
 test("desktop agents card adds an agent's progress line when it has one", async ($, on) => {
   mock.clock(on, { now: NOW })
   engine(on)
@@ -353,7 +419,8 @@ test('desktop agents card draws only the description at full strength', async ($
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   const texts = await ui.findAll({ type: 'Text' })
-  expect(texts.find(t => t.text === 'running · Explore: ')?.props.dimColor).toBe(true)
+  expect(texts.find(t => t.text === 'running')?.props.dimColor).toBe(true)
+  expect(texts.find(t => t.text === ' · Explore: ')?.props.dimColor).toBe(true)
   // One on the row and one in the card.
   expect(texts.filter(t => t.text === 'map the hooks' && t.props.dimColor === undefined).length).toBe(2)
   expect(texts.filter(t => t.text === ' 3m' && t.props.dimColor === true).length).toBe(2)
@@ -455,6 +522,87 @@ test('agents row gives up the type before the description', () => {
   expect(text(agentsRow(TWO_AGENTS, NOW, 45))).toBe('agents 2 general…: review the… waiting 5m +1')
   expect(text(agentsRow(TWO_AGENTS, NOW, 40))).toBe('agents 2 review the diff waiting 5m +1')
   expect(text(agentsRow(LONG_TYPE, NOW, 40))).toBe('agents 1 some-plugin:v…: do the thing 1m')
+})
+
+test('agents row says quiet once a running agent has sent no request for two minutes', () => {
+  const quietFor = (minutes: number): ActivityAgent => ({
+    ...working('Explore', 'map the hooks', 'running', 12),
+    quietSince: NOW - minutes * 60_000,
+  })
+  expect(text(agentsRow([quietFor(1.5)], NOW, 100))).toBe('agents 1 Explore: map the hooks 12m')
+  expect(text(agentsRow([quietFor(2)], NOW, 100))).toBe('agents 1 Explore: map the hooks quiet 2m')
+  expect(text(agentHead(quietFor(1.5), NOW))).toBe('running · Explore: map the hooks 12m')
+  expect(text(agentHead(quietFor(4), NOW))).toBe('running · Explore: map the hooks 12m · quiet 4m')
+})
+
+test('only a running agent whose token count stands still is quiet since its last request', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  const sent = { lastRequest: { at: NOW - 3 * 60_000, model: 'm' } }
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({
+    value: [
+      { ...agent('a1', 'map the hooks', 'running', 12), ...sent, tokenCount: 500, tokenSamples: [500, 500, 500] },
+      { ...agent('a2', 'read the tests', 'running', 5), ...sent, tokenCount: 500, tokenSamples: [400, 450, 500] },
+      { ...agent('a3', 'check the docs', 'running', 1), tokenCount: 0, tokenSamples: [0, 0] },
+      { ...agent('a4', 'review the diff', 'waiting', 5), ...sent, tokenCount: 500, tokenSamples: [500, 500] },
+    ] as AgentInfo[],
+  }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 200 }, surface: 'terminal' })
+  expect((await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text).toBe(
+    'agents 4 Explore: map the hooks quiet 3m · Explore: read the tests 5m · Explore: check the docs 1m · Explore: review the diff waiting 5m',
+  )
+  await ui.unmount()
+})
+
+test('agents card gives context use, model and an estimated cost, each only when known', () => {
+  const a = working('Explore', 'map the hooks', 'running', 3)
+  expect(agentFacts(a)).toBe('')
+  expect(agentFacts({ ...a, model: 'claude-haiku-5-5' })).toBe('claude-haiku-5-5')
+  expect(agentFacts({ ...a, contextPercent: 43, model: 'claude-haiku-5-5', costUsd: 0.1234 })).toBe(
+    'context 43% · claude-haiku-5-5 · est. $0.12',
+  )
+})
+
+test('agents card lists each agent under the one that spawned it', () => {
+  const a = (id: string, parentId?: string): ActivityAgent => ({ ...working('Explore', id, 'running', 1), id, parentId })
+  const list = [a('a1'), a('a2'), a('a3', 'a1'), a('a4', 'a3'), a('a5', 'not listed')]
+  expect(nested(list).map(([agent, depth]) => [agent.id, depth])).toEqual([
+    ['a1', 0],
+    ['a3', 1],
+    ['a4', 2],
+    ['a2', 0],
+    ['a5', 0],
+  ])
+})
+
+test("desktop agents card draws an agent's facts under it, and a spawned agent indented", async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({
+    value: [
+      {
+        ...agent('a1', 'map the hooks', 'running', 3),
+        model: 'claude-haiku-5-5',
+        contextWindowSize: 200_000,
+        tokenCount: 86_000,
+        tokenSamples: [80_000, 86_000],
+        cost: { usd: 0.1234 },
+      },
+      { ...agent('a2', 'read the tests', 'running', 1), parentId: 'a1' },
+    ] as AgentInfo[],
+  }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const facts = await ui.find({ type: 'Text', text: /^context 43% · claude-haiku-5-5 · est\. \$0\.12$/ })
+  expect(facts?.props.dimColor).toBe(true)
+  const indents = (await ui.findAll({ type: 'Box' })).map(b => b.props.paddingLeft).filter(n => n !== undefined)
+  expect(indents).toEqual([0, 2])
+  await ui.unmount()
 })
 
 test('a run of an hour or more is written in hours', () => {

@@ -55,8 +55,32 @@ export const elapsed = (now: number, startTime: number) => {
   return `${Math.floor(minutes / 60)}h${minutes % 60 === 0 ? '' : `${minutes % 60}m`}`
 }
 
+// `killed` is the engine's word for an agent that was stopped.
+const word = (a: ActivityAgent) => (a.status === 'killed' ? 'stopped' : a.status)
+
+// One that ended shows how long it ran, which stands still while it stays on the row.
+const time = (a: ActivityAgent, now: number) => elapsed(a.endedAt ?? now, a.startTime)
+
+// The word says what was measured, no request for this long; a long tool call is quiet and healthy.
+const QUIET_AFTER = 2 * 60_000
+const quiet = (a: ActivityAgent, now: number) =>
+  a.quietSince !== undefined && now - a.quietSince >= QUIET_AFTER ? `quiet ${elapsed(now, a.quietSince)}` : undefined
+
 const tail = (a: ActivityAgent, now: number) =>
-  a.status === 'running' ? elapsed(now, a.startTime) : `${a.status} ${elapsed(now, a.startTime)}`
+  a.status === 'running' ? (quiet(a, now) ?? time(a, now)) : `${word(a)} ${time(a, now)}`
+
+// A stop is most often the person's own; only a failure is news in a color.
+const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'failed' ? { color: 'error' } : DIM)
+
+export const agentHead = (a: ActivityAgent, now: number): Span[] => {
+  const still = quiet(a, now)
+  return [
+    [word(a), statusStyle(a)],
+    [`${SEP}${a.type}: `, DIM],
+    [a.description],
+    [` ${time(a, now)}${still === undefined ? '' : `${SEP}${still}`}`, DIM],
+  ]
+}
 
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
@@ -98,6 +122,26 @@ export const stepLine = (s: PlanStep, isWorking: boolean): Span[] => {
     : [[MARK.in_progress, { color: 'claude' }], [` ${s.content}`, { weight: 'semibold' }]]
 }
 
+// The engine calls its cost an estimate and asks a mod that shows it to say so.
+export const agentFacts = (a: ActivityAgent) =>
+  [
+    a.contextPercent === undefined ? '' : `context ${a.contextPercent}%`,
+    a.model ?? '',
+    a.costUsd === undefined ? '' : `est. $${a.costUsd.toFixed(2)}`,
+  ]
+    .filter(fact => fact !== '')
+    .join(SEP)
+
+// Each agent under the one that spawned it; one whose parent is not listed stands at the top.
+export const nested = (list: readonly ActivityAgent[]): [agent: ActivityAgent, depth: number][] => {
+  const listed = new Set(list.map(a => a.id))
+  const under = (parent: string | undefined, depth: number): [ActivityAgent, number][] =>
+    list
+      .filter(a => (a.parentId !== undefined && listed.has(a.parentId) ? a.parentId : undefined) === parent)
+      .flatMap((a): [ActivityAgent, number][] => [[a, depth], ...under(a.id, depth + 1)])
+  return under(undefined, 0)
+}
+
 export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: number): Span[] => {
   const head = `agents ${list.length} `
   const need = (a: ActivityAgent) => Math.min(cells(a.description), MIN_TEXT)
@@ -127,7 +171,7 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     // The description says which agent this is; its type and what parts two agents are dim beside it.
     const lead = `${i > 0 ? SEP : ''}${prefix}`
     if (lead !== '') row.push([lead, DIM])
-    row.push([description], [` ${tail(a, now)}`, DIM])
+    row.push([description], [` ${tail(a, now)}`, statusStyle(a)])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)
