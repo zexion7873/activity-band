@@ -577,8 +577,8 @@ test('agents row says quiet once a running agent has sent no request for two min
   })
   expect(text(agentsRow([quietFor(1.5)], NOW, 100))).toBe('agents 1 Explore: map the hooks 12m')
   expect(text(agentsRow([quietFor(2)], NOW, 100))).toBe('agents 1 Explore: map the hooks quiet 2m')
-  expect(text(agentHead(quietFor(1.5), NOW))).toBe('running · Explore: map the hooks 12m')
-  expect(text(agentHead(quietFor(4), NOW))).toBe('running · Explore: map the hooks 12m · quiet 4m')
+  expect(text(agentHead(quietFor(1.5), NOW, false))).toBe('running · Explore: map the hooks 12m')
+  expect(text(agentHead(quietFor(4), NOW, false))).toBe('running · Explore: map the hooks 12m · quiet 4m')
 })
 
 test('only a running agent whose token count stands still is quiet since its last request', async ($, on) => {
@@ -649,6 +649,73 @@ test("desktop agents card draws an agent's facts under it, and a spawned agent i
   const indents = (await ui.findAll({ type: 'Box' })).map(b => b.props.paddingLeft).filter(n => n !== undefined)
   expect(indents).toEqual([0, 2])
   await ui.unmount()
+})
+
+test('desktop agents card opens an agent on a press, and says why when the view refuses', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  const asked: unknown[] = []
+  const toasts: string[] = []
+  let answer: { deny?: string } = {}
+  on('ui.view', (_, e) => {
+    asked.push(e.agentId)
+    return { value: answer }
+  })
+  on('ui.toast', (_, e) => {
+    toasts.push(e.text)
+    return { value: undefined }
+  })
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: [agent('a1', 'map the hooks', 'running', 3)] }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  await $.ui.press({ plugin: 'activity-band', key: 'view:a1' })
+  expect(asked).toEqual(['a1'])
+  expect(toasts).toEqual([])
+
+  answer = { deny: 'the view moved meanwhile' }
+  await $.ui.press({ plugin: 'activity-band', key: 'view:a1' })
+  expect(toasts).toEqual(['the view moved meanwhile'])
+  await ui.unmount()
+})
+
+test('the agent on screen is marked, and its card offers the way back to the main conversation', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  const asked: unknown[] = []
+  on('ui.view', (_, e) => {
+    asked.push(e.agentId ?? 'main')
+    return { value: {} }
+  })
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({
+    value: [agent('a1', 'map the hooks', 'running', 3), agent('a2', 'read the tests', 'running', 1)],
+  }))
+  await $.agent.spawn(SPAWN)
+  const viewing = { ...BAND, props: { ...BAND.props, view: { agentId: 'a2' } } }
+
+  const ui = await $.ui.mount({ ...viewing, surface: 'desktop' })
+  const texts = await ui.findAll({ type: 'Text' })
+  // Once on the row and once in the card.
+  expect(texts.filter(t => t.text === 'read the tests').map(t => t.props.weight)).toEqual(['semibold', 'semibold'])
+  expect(texts.filter(t => t.text === 'map the hooks').map(t => t.props.weight)).toEqual([undefined, undefined])
+  expect((await ui.findAll({ type: 'Button' })).map(b => b.key)).toEqual(['view:main', 'view:a1', 'view:a2'])
+  await $.ui.press({ plugin: 'activity-band', key: 'view:main' })
+  expect(asked).toEqual(['main'])
+  await ui.unmount()
+
+  const main = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect((await main.findAll({ type: 'Button' })).map(b => b.key)).toEqual(['view:a1', 'view:a2'])
+  await main.unmount()
+
+  // The terminal row stays one line of text: the mark, and no button.
+  const terminal = await $.ui.mount({ ...viewing, surface: 'terminal' })
+  expect(await terminal.findAll({ type: 'Button' })).toEqual([])
+  const row = (await terminal.findAll({ type: 'Text' })).filter(t => t.props.wrap !== undefined)
+  expect(row.map(t => t.text)).toEqual(['agents 2 Explore: map the hooks 3m · Explore: read the tests 1m'])
+  expect((await terminal.find({ type: 'Text', text: /^read the tests$/ }))?.props.weight).toBe('semibold')
+  await terminal.unmount()
 })
 
 test('a run of an hour or more is written in hours', () => {

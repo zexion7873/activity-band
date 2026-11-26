@@ -31,6 +31,10 @@ Worth knowing before you decide whether something is in scope.
 - It keeps the task list, the agent list and whether the task list was left by
   an earlier turn in the session's state, in memory, and draws the two lists as
   text above the prompt.
+- On a press of an agent in its hover card, and only then, it asks the app to
+  put that agent's transcript, or the main conversation, in the main view, as
+  the app's own tasks list does. It reads which transcript is on screen, to
+  mark that agent. It moves the view at no other time.
 - It writes no file and nothing to the per-plugin store.
 - It makes no network request and no model call, and runs no process.
 - The calls and turn starts it watches pass through with their arguments and

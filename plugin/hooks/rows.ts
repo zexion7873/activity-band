@@ -72,12 +72,15 @@ const tail = (a: ActivityAgent, now: number) =>
 // A stop is most often the person's own; only a failure is news in a color.
 const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'failed' ? { color: 'error' } : DIM)
 
-export const agentHead = (a: ActivityAgent, now: number): Span[] => {
+// The agent whose transcript is on screen is told from the rest by weight: a glyph for it would be one more font to borrow.
+const described = (description: string, isViewed: boolean): Span => (isViewed ? [description, { weight: 'semibold' }] : [description])
+
+export const agentHead = (a: ActivityAgent, now: number, isViewed: boolean): Span[] => {
   const still = quiet(a, now)
   return [
     [word(a), statusStyle(a)],
     [`${SEP}${a.type}: `, DIM],
-    [a.description],
+    described(a.description, isViewed),
     [` ${time(a, now)}${still === undefined ? '' : `${SEP}${still}`}`, DIM],
   ]
 }
@@ -146,7 +149,7 @@ export const nested = (list: readonly ActivityAgent[]): [agent: ActivityAgent, d
   return under(undefined, 0)
 }
 
-export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: number): Span[] => {
+export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: number, viewed?: string): Span[] => {
   const head = `agents ${list.length} `
   const need = (a: ActivityAgent) => Math.min(cells(a.description), MIN_TEXT)
   const more = (shown: number) => (shown < list.length ? ` +${list.length - shown}` : '')
@@ -175,7 +178,7 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     // The description says which agent this is; its type and what parts two agents are dim beside it.
     const lead = `${i > 0 ? SEP : ''}${prefix}`
     if (lead !== '') row.push([lead, DIM])
-    row.push([description], [` ${tail(a, now)}`, statusStyle(a)])
+    row.push(described(description, a.id === viewed), [` ${tail(a, now)}`, statusStyle(a)])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)
