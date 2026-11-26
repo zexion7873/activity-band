@@ -46,6 +46,15 @@ says otherwise.
 - **Keep each terminal row to one line.** Each row is one `Text` with
   `wrap="truncate-end"`; sibling Texts wrap into columns once the line
   overflows.
+- **Keep the buttons in the card.** A `Button` cannot sit inside the one
+  `Text` a terminal row is, so the agents that open on a press are the card's
+  head lines, on the desktop; the row marks the agent on screen by weight and
+  stays text. The terminal has no card, so no way to open an agent from the
+  band there.
+- **Move the view only from a press, and say why when it does not move.**
+  `$.ui.view` answers `{ deny }` with the reason (the call was not the
+  person's own input, no agent holds the id, the view moved meanwhile) and
+  does not throw; the reason goes to a toast.
 - **Step aside for a survey.** `e.props.hasSurvey` returns `below` untouched.
   No test yet.
 - **Draw a plan as paused when no turn is running.** A turn that stops before
@@ -116,7 +125,10 @@ without its type. Not watched there: the `▮` and `▯` marks on the row and in
 the plan card, a row with marks and no count, `12/30 done`, the dim type, a
 dim `waiting`, a run written in hours, a failed or stopped agent kept on the
 row, `quiet`, the card's facts line and its indent for a spawned agent, and
-the minutes after the step in progress.
+the minutes after the step in progress. Nor the card's buttons: how a
+`plain` `Button` draws there, whether the card stays open while the pointer
+moves onto one, a press that opens an agent, the bold mark on the agent on
+screen, `← main conversation`, and the toast on a refusal.
 In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface

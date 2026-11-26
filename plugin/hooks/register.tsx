@@ -106,8 +106,14 @@ export const register: Register = on => {
     const now = await $.clock.now()
     // A turn that stopped short of its wrap-up leaves steps undone: the row stays, drawn as paused until a turn takes them up.
     const { bodyColumns } = e.props
+    const viewed = e.props.view.agentId
     const isLive = e.props.isWorking && !(await read($, stale))
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    // The view moves only on the person's own press, and answers why when it does not move.
+    const show = (agentId?: string) =>
+      $.ui.view(agentId === undefined ? {} : { agentId }).then(shown => {
+        if (shown.deny !== undefined) $.ui.toast(shown.deny)
+      })
 
     // One Text a row, cut at the edge: sibling Texts wrap into columns once the line overflows.
     const line = (spans: Span[], props: TextProps & { key?: string }) => (
@@ -120,7 +126,7 @@ export const register: Register = on => {
       </Text>
     )
     const planLine = hasPlan && line(planRow(steps, isLive, bodyColumns, now), { wrap: 'truncate-end' })
-    const agentsLine = working.length > 0 && line(agentsRow(working, now, bodyColumns), { wrap: 'truncate-end' })
+    const agentsLine = working.length > 0 && line(agentsRow(working, now, bodyColumns, viewed), { wrap: 'truncate-end' })
 
     if (e.surface === 'terminal') {
       return (
@@ -148,12 +154,19 @@ export const register: Register = on => {
           <Box key="agents" flexDirection="row" alignItems="center">
             {agentsLine}
             <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} flexDirection="column">
+              {viewed !== undefined && (
+                <Button key="view:main" plain dimColor onPress={() => show()}>
+                  ← main conversation
+                </Button>
+              )}
               {nested(working).map(([a, depth]) => {
                 const summary = a.label.trim().replace(/\n[\s\S]*/, '')
                 const facts = agentFacts(a)
                 return (
                   <Box key={a.id} flexDirection="column" paddingLeft={depth * 2}>
-                    {line(agentHead(a, now), {})}
+                    <Button key={`view:${a.id}`} plain onPress={() => show(a.id)}>
+                      {line(agentHead(a, now, a.id === viewed), {})}
+                    </Button>
                     {facts !== '' && <Text dimColor>{facts}</Text>}
                     {summary !== '' && summary !== a.description && <Text dimColor>{clip(summary, CARD_COLS)}</Text>}
                   </Box>

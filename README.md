@@ -55,6 +55,12 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   model and what it has cost so far (`context 43% · claude-haiku-5-5 · est.
   $0.12`), then the first line of its latest progress summary. The cost is
   Claude Code's own estimate at list prices, not a bill.
+- **Open an agent from the card** (desktop app): press an agent in the agents
+  card and the app shows its transcript, as picking it in the tasks list
+  does, so your next prompt goes to that agent. While an agent's transcript
+  is on screen its description is bold, on the row too, and the card starts
+  with `← main conversation` to go back. If the app declines to switch, its
+  reason appears as a toast.
 
 With no plan and no agent at work the mod draws nothing.
 
@@ -100,7 +106,8 @@ plugin.
 | `tool.call` (the desktop app's `update_plan`) | the call's arguments, after it ran: each step's text and status; and the clock, to note when a step became in progress | the plan kept in the session's state, and clears that mark; the call and its result pass through untouched |
 | `tool.call` (the desktop app's `wrap_up`) | only whether the call succeeded | marks every step done, which empties the plan row |
 | `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status, start time, parent agent, model, context window, cost estimate, token count with its recent readings, and the time of its last request | the list of working agents kept in the session's state |
-| `ui.render` (`AbovePrompt`) | that state, the clock, the band's width and whether a turn is running | draws the rows, with whatever another mod drew on this mod's row kept above them |
+| `ui.render` (`AbovePrompt`) | that state, the clock, the band's width, whether a turn is running and which transcript is on screen | draws the rows, with whatever another mod drew on this mod's row kept above them |
+| a press on an agent, or on `← main conversation`, in the agents card | nothing | asks the app to put that agent's transcript, or the main conversation, in the main view; shows the app's reason as a toast when it declines |
 
 All three values live in the session's state, in memory. Nothing is written
 to disk or to the per-plugin store, and nothing outlives the session.
