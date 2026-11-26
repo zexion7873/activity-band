@@ -121,14 +121,14 @@ says otherwise.
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row, a plan held paused through a later turn, the
 cut at a narrow width, a plan drawn without its marks and an agent drawn
-without its type. Not watched there: the `▮` and `▯` marks on the row and in
-the plan card, a row with marks and no count, `12/30 done`, the dim type, a
-dim `waiting`, a run written in hours, a failed or stopped agent kept on the
-row, `quiet`, the card's facts line and its indent for a spawned agent, and
-the minutes after the step in progress. Nor the card's buttons: how a
-`plain` `Button` draws there, whether the card stays open while the pointer
-moves onto one, a press that opens an agent, the bold mark on the agent on
-screen, `← main conversation`, and the toast on a refusal.
+without its type. So have the `▮` and `▯` marks on the row and in the plan
+card, a row with marks and no count, the minutes after the step in progress,
+the dim type, a dim `waiting`, a stopped agent kept on the row, the card's
+facts line and its indent for a spawned agent, and the card's buttons: how a
+`plain` `Button` draws there, the card staying open while the pointer moves
+onto one, a press that opens an agent, the bold mark on the agent on screen
+and `← main conversation`. Not watched there: `12/30 done`, a run written in
+hours, a failed agent kept on the row, `quiet`, and the toast on a refusal.
 In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
