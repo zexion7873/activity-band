@@ -338,7 +338,25 @@ test("desktop agents card adds an agent's progress line when it has one", async 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   expect(await ui.find({ type: 'Text', text: /^running · Explore: map the hooks 3m$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^Reading register\.tsx$/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^review the diff$/ })).toBeUndefined()
+  // A progress line is dim; the description on the row and in the card's head line is not.
+  const repeated = (await ui.findAll({ type: 'Text' })).filter(t => t.text === 'review the diff' && t.props.dimColor === true)
+  expect(repeated).toEqual([])
+  await ui.unmount()
+})
+
+test('desktop agents card draws only the description at full strength', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({ value: [agent('a1', 'map the hooks', 'running', 3)] }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const texts = await ui.findAll({ type: 'Text' })
+  expect(texts.find(t => t.text === 'running · Explore: ')?.props.dimColor).toBe(true)
+  // One on the row and one in the card.
+  expect(texts.filter(t => t.text === 'map the hooks' && t.props.dimColor === undefined).length).toBe(2)
+  expect(texts.filter(t => t.text === ' 3m' && t.props.dimColor === true).length).toBe(2)
   await ui.unmount()
 })
 
@@ -411,6 +429,25 @@ test('agents row shows every agent whose description has room, and hands spare c
   )
   const uneven = ['lint', 'rewrite the allocation loop'].map(d => working('Explore', d, 'running', 1))
   expect(text(agentsRow(uneven, NOW, 60))).toBe('agents 2 Explore: lint 1m · Explore: rewrite the allocat… 1m')
+})
+
+test('agents row draws the type and the separator dim, and the description at full strength', () => {
+  expect(agentsRow(TWO_AGENTS, NOW, 100).map(([t, style]) => [t, style?.dimColor === true])).toEqual([
+    ['agents 2 ', true],
+    ['general-purpose: ', true],
+    ['review the diff', false],
+    [' waiting 5m', true],
+    [' · Explore: ', true],
+    ['map the hooks', false],
+    [' 3m', true],
+  ])
+  // A type left out leaves no span of its own behind.
+  expect(agentsRow(TWO_AGENTS, NOW, 40).map(([t, style]) => [t, style?.dimColor === true])).toEqual([
+    ['agents 2 ', true],
+    ['review the diff', false],
+    [' waiting 5m', true],
+    [' +1', true],
+  ])
 })
 
 test('agents row gives up the type before the description', () => {

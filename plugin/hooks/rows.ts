@@ -122,7 +122,10 @@ export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: num
     const room = extra + cells(`${a.type}: `) + need(a) - cells(prefix)
     const description = clip(a.description, room)
     extra = room - cells(description)
-    row.push([`${i > 0 ? SEP : ''}${prefix}${description}`], [` ${tail(a, now)}`, DIM])
+    // The description says which agent this is; its type and what parts two agents are dim beside it.
+    const lead = `${i > 0 ? SEP : ''}${prefix}`
+    if (lead !== '') row.push([lead, DIM])
+    row.push([description], [` ${tail(a, now)}`, DIM])
   })
   if (shown < list.length) row.push([more(shown), DIM])
   return fit(row, cols)

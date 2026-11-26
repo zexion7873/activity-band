@@ -75,6 +75,10 @@ says otherwise.
 - **Give up an agent's type before its description.** On a row too narrow for
   both, the type is cut, then left out; it tells the reader less than the
   description does, and a plugin's type can be any length.
+- **Leave an agent's description the one thing at full strength.** Its type,
+  its status and minutes, and the separator between two agents are dim, on
+  the row and in the card's head line: `general-purpose` says the least and
+  comes first.
 - **Say an agent's status in a word.** One that is not running shows the word
   before its minutes, dim like the minutes. `waiting` gets no color and no
   place at the front: it is held on the agent's own background work, another

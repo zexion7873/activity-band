@@ -38,9 +38,11 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   way through later turns until one of them updates the plan.
 - **The agents row:** how many subagents are still at work, then as many of
   them as the row has room for, as `type: description` with the minutes since
-  each started, then `+N` for the rest. On a row too narrow for both, the type
-  is cut and then left out before the description is. One that is not running
-  shows its status before the minutes. It leaves when the last one finishes.
+  each started, then `+N` for the rest. The description is the one part at
+  full strength; the type and the minutes are dim beside it. On a row too
+  narrow for both, the type is cut and then left out before the description
+  is. One that is not running shows its status before the minutes. It leaves
+  when the last one finishes.
 - **A card on hover** (desktop app): every step with its mark (`▮` done, `▶` in
   progress, `▯` pending) over the plan row; every working agent with its status
   over the agents row, and under it the first line of its latest progress

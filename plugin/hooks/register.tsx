@@ -137,7 +137,11 @@ export const register: Register = on => {
               {working.flatMap(a => {
                 const summary = a.label.trim().replace(/\n[\s\S]*/, '')
                 const head = line(
-                  [[a.status, { dimColor: true }], [`${SEP}${a.type}: ${a.description} ${elapsed(now, a.startTime)}`]],
+                  [
+                    [`${a.status}${SEP}${a.type}: `, { dimColor: true }],
+                    [a.description],
+                    [` ${elapsed(now, a.startTime)}`, { dimColor: true }],
+                  ],
                   { key: a.id },
                 )
                 if (summary === '' || summary === a.description) return [head]
