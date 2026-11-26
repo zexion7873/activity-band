@@ -31,14 +31,16 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
 
 - **The plan row:** one mark for each step (`▰` done, `▱` not yet), how many
   are done out of how many, the step in progress, and the next step when the
-  row has room for it. It is drawn while a plan has a step left, and leaves
-  when the turn wraps up. A turn that stops before its wrap-up leaves the row
-  dimmed, with `‖` in place of `▶`, until the next plan.
+  row has room for it. A plan too long for its marks to fit in a quarter of
+  the row shows the count without them. It is drawn while a plan has a step
+  left, and leaves when the turn wraps up. A turn that stops before its
+  wrap-up leaves the row dimmed, with `‖` in place of `▶`, until the next plan.
 - **The agents row:** how many subagents are still at work, then as many of
   them as the row has room for, as `type: description` with the minutes since
-  each started, then `+N` for the rest. One that is not running shows its
-  status before the minutes, and a `waiting` one comes first, in the warning
-  color. It leaves when the last one finishes.
+  each started, then `+N` for the rest. On a row too narrow for both, the type
+  is cut and then left out before the description is. One that is not running
+  shows its status before the minutes, and a `waiting` one comes first, in the
+  warning color. It leaves when the last one finishes.
 - **A card on hover** (desktop app): every step with its mark (`☑` done, `▶` in
   progress, `☐` pending) over the plan row; every working agent with its status
   over the agents row, and under it the first line of its latest progress

@@ -4,6 +4,8 @@ import type { ActivityAgent, PlanStep } from '../types'
 
 // The cells a description or a next step needs before it is worth a place on the row.
 const MIN_TEXT = 12
+// A type cut shorter than this names nothing, so it is left out instead.
+const MIN_TYPE = 4
 export const SEP = ' · '
 const MARK = { completed: '☑', in_progress: '▶', pending: '☐' } as const
 const PAUSE = '‖'
@@ -28,6 +30,23 @@ export const clip = (s: string, max: number) => {
   return `${out.trimEnd()}…`
 }
 
+// The layouts below give way in order of worth; this holds a row to `cols` where even the least of it is too wide.
+const fit = (row: Span[], cols: number): Span[] => {
+  const out: Span[] = []
+  let left = cols
+  for (const span of row) {
+    if (left < 1) break
+    const cut = clip(span[0], left)
+    if (cut !== span[0]) {
+      out.push([cut, span[1]])
+      break
+    }
+    out.push(span)
+    left -= cells(cut)
+  }
+  return out
+}
+
 export const elapsed = (now: number, startTime: number) => {
   const minutes = Math.floor((now - startTime) / 60_000)
   return minutes < 1 ? '<1m' : `${minutes}m`
@@ -41,22 +60,28 @@ export const statusStyle = (a: ActivityAgent): TextProps => (a.status === 'waiti
 export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: number): Span[] => {
   const tone = (color: string): TextProps => (isWorking ? { color } : DIM)
   const current = steps.find(s => s.status === 'in_progress')
-  const count = ` ${steps.filter(s => s.status === 'completed').length}/${steps.length}`
-  const row: Span[] = [
-    ['plan ', DIM],
-    ...steps.map((s): Span => (s.status === 'completed' ? ['▰', tone('success')] : ['▱', s === current ? tone('claude') : DIM])),
-    [count, { dimColor: true, tabular: true }],
-  ]
-  if (current === undefined) return row
+  const done = steps.filter(s => s.status === 'completed').length
+  // Marks past a quarter of the row take the room of the step in progress, and the count already says what they say.
+  const marks =
+    steps.length * 4 > cols
+      ? []
+      : steps.map((s): Span => (s.status === 'completed' ? ['▰', tone('success')] : ['▱', s.status === 'in_progress' ? tone('claude') : DIM]))
+  const count = `${marks.length > 0 ? ' ' : ''}${done}/${steps.length}`
+  const row: Span[] = [['plan ', DIM], ...marks, [count, { dimColor: true, tabular: true }]]
+  if (current === undefined) {
+    // Between two steps a stopped plan differs from a live one by brightness alone without it.
+    if (!isWorking && done < steps.length) row.push([` ${PAUSE}`, DIM])
+    return fit(row, cols)
+  }
 
-  const room = cols - 'plan '.length - steps.length - count.length - 3
+  const room = cols - 'plan '.length - marks.length - count.length - 3
   const label = clip(current.content, room)
   row.push([` ${isWorking ? MARK.in_progress : PAUSE} `, tone('claude')], [label, isWorking ? { weight: 'semibold' } : DIM])
 
   const next = steps.slice(steps.indexOf(current) + 1).find(s => s.status === 'pending')
   const nextRoom = room - cells(label) - 3
   if (isWorking && next !== undefined && nextRoom >= MIN_TEXT) row.push([` → ${clip(next.content, nextRoom)}`, DIM])
-  return row
+  return fit(row, cols)
 }
 
 export const stepLine = (s: PlanStep, isWorking: boolean): Span[] => {
@@ -70,19 +95,32 @@ export const stepLine = (s: PlanStep, isWorking: boolean): Span[] => {
 
 export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: number): Span[] => {
   const head = `agents ${list.length} `
-  const fixed = list.map(a => cells(`${a.type}: `) + 1 + cells(tail(a, now)))
+  const need = (a: ActivityAgent) => Math.min(cells(a.description), MIN_TEXT)
   const more = (shown: number) => (shown < list.length ? ` +${list.length - shown}` : '')
+  // What is left once each agent shown has its type, its tail and the least its description needs.
   const spare = (shown: number) =>
-    cols - head.length - more(shown).length - SEP.length * (shown - 1) - fixed.slice(0, shown).reduce((a, b) => a + b, 0)
+    list
+      .slice(0, shown)
+      .reduce(
+        (left, a) => left - cells(`${a.type}: `) - need(a) - 1 - cells(tail(a, now)),
+        cols - head.length - more(shown).length - SEP.length * (shown - 1),
+      )
 
   let shown = list.length
-  while (shown > 1 && spare(shown) < MIN_TEXT * shown) shown -= 1
-  const share = Math.floor(spare(shown) / shown)
+  while (shown > 1 && spare(shown) < 0) shown -= 1
+  let extra = spare(shown)
 
   const row: Span[] = [[head, { dimColor: true, tabular: true }]]
   list.slice(0, shown).forEach((a, i) => {
-    row.push([`${i > 0 ? SEP : ''}${a.type}: ${clip(a.description, share)}`], [` ${tail(a, now)}`, statusStyle(a)])
+    // Short of room, which only the last agent left can be, the type is cut and then dropped before the description.
+    const typeRoom = cells(a.type) + extra
+    const type = typeRoom >= cells(a.type) ? a.type : typeRoom >= MIN_TYPE ? clip(a.type, typeRoom) : ''
+    const prefix = type === '' ? '' : `${type}: `
+    const room = extra + cells(`${a.type}: `) + need(a) - cells(prefix)
+    const description = clip(a.description, room)
+    extra = room - cells(description)
+    row.push([`${i > 0 ? SEP : ''}${prefix}${description}`], [` ${tail(a, now)}`, statusStyle(a)])
   })
   if (shown < list.length) row.push([more(shown), DIM])
-  return row
+  return fit(row, cols)
 }
