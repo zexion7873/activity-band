@@ -87,14 +87,14 @@ test('plan row shows the count and the step in progress, and follows an advance'
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-    expect(texts).toContain('plan ▰▱▱ 1/3 ▶ write the fix → run the tests')
+    expect(texts).toContain('plan ▮▯▯ 1/3 ▶ write the fix → run the tests')
     await ui.unmount()
   }
 
   await call($, UPDATE_PLAN, { advance: true })
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-  expect(texts).toContain('plan ▰▰▱ 2/3 ▶ run the tests')
+  expect(texts).toContain('plan ▮▮▯ 2/3 ▶ run the tests')
   await ui.unmount()
 })
 
@@ -104,9 +104,9 @@ test('desktop card lists every step with its mark', async ($, on) => {
   await call($, UPDATE_PLAN, { items: PLAN })
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  expect(await ui.find({ type: 'Text', text: /^☑ read the code$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▮ read the code$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^▶ write the fix$/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^☐ run the tests$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▯ run the tests$/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -155,7 +155,7 @@ test('band keeps what the plugins beneath it drew', async ($, on) => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     expect(await ui.find({ type: 'Text', text: /^beneath$/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /plan ▰▱▱ 1\/3/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /plan ▮▯▯ 1\/3/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -219,7 +219,7 @@ test('terminal draws each row as one line cut at the edge', async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const lines = (await ui.findAll({ type: 'Text' })).filter(t => t.props.wrap !== undefined)
   expect(lines.map(t => [t.props.wrap, t.text])).toEqual([
-    ['truncate-end', 'plan ▰▱▱ 1/3 ▶ write the fix → run the tests'],
+    ['truncate-end', 'plan ▮▯▯ 1/3 ▶ write the fix → run the tests'],
     ['truncate-end', 'agents 1 Explore: map the hooks 3m'],
   ])
   await ui.unmount()
@@ -232,7 +232,7 @@ test('plan row goes dim and shows a pause mark when no turn is running', async (
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: false }, surface: 'terminal' })
   const texts = await ui.findAll({ type: 'Text' })
-  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▰▱▱ 1/3 ‖ write the fix'])
+  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▮▯▯ 1/3 ‖ write the fix'])
   const spans = texts.filter(t => t.props.wrap === undefined)
   expect(spans.every(t => t.props.dimColor === true && t.props.color === undefined)).toBe(true)
   await ui.unmount()
@@ -249,7 +249,7 @@ test('plan row colors a finished step and the step in progress', async ($, on) =
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect((await ui.find({ type: 'Text', text: /^▰$/ }))?.props.color).toBe('success')
+    expect((await ui.find({ type: 'Text', text: /^▮$/ }))?.props.color).toBe('success')
     expect((await ui.find({ type: 'Text', text: /^ ▶ $/ }))?.props.color).toBe('claude')
     await ui.unmount()
   }
@@ -273,8 +273,8 @@ test('plan row cuts a wide-character step by cells and drops the next step when 
     return text
   }
   // 15 cells of head, 15 left: seven two-cell characters and the ellipsis.
-  expect(await row(30)).toBe('plan ▰▱▱ 1/3 ▶ 把殭屍列修好並…')
-  expect(await row(100)).toBe('plan ▰▱▱ 1/3 ▶ 把殭屍列修好並補上測試 → 跑測試')
+  expect(await row(30)).toBe('plan ▮▯▯ 1/3 ▶ 把殭屍列修好並…')
+  expect(await row(100)).toBe('plan ▮▯▯ 1/3 ▶ 把殭屍列修好並補上測試 → 跑測試')
 })
 
 test('agents row puts a waiting agent first, named and colored', async ($, on) => {
@@ -362,17 +362,17 @@ test('plan row stays paused through a later turn that leaves the plan alone', as
 
   await $.turn.start({ text: 'fix the bug', turnId: 't1' })
   await call($, UPDATE_PLAN, { items: PLAN })
-  expect(await row()).toBe('plan ▰▱▱ 1/3 ▶ write the fix → run the tests')
+  expect(await row()).toBe('plan ▮▯▯ 1/3 ▶ write the fix → run the tests')
 
   await $.turn.start({ text: 'something else', turnId: 't2' })
-  expect(await row()).toBe('plan ▰▱▱ 1/3 ‖ write the fix')
+  expect(await row()).toBe('plan ▮▯▯ 1/3 ‖ write the fix')
 
   await $.turn.start({ text: 'map the hooks', turnId: 't3', agentId: 'a1' })
   await call($, UPDATE_PLAN, { advance: true })
-  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+  expect(await row()).toBe('plan ▮▮▯ 2/3 ▶ run the tests')
 
   await $.turn.start({ text: 'read the tests', turnId: 't4', agentId: 'a1' })
-  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+  expect(await row()).toBe('plan ▮▮▯ 2/3 ▶ run the tests')
 })
 
 test('plan row drops its marks before the step in progress loses its room', () => {
@@ -388,7 +388,7 @@ test('plan row gives every step in progress the accent mark', () => {
     { content: 'b', status: 'in_progress' },
     { content: 'c', status: 'pending' },
   ]
-  const marks = planRow(steps, true, 100).filter(([t]) => t === '▱')
+  const marks = planRow(steps, true, 100).filter(([t]) => t === '▯')
   expect(marks.map(([, style]) => style?.color)).toEqual(['claude', 'claude', undefined])
 })
 
@@ -399,8 +399,8 @@ test('plan row shows the pause mark with no step in progress and no turn running
     { content: 'c', status: 'pending' },
     { content: 'd', status: 'pending' },
   ]
-  expect(text(planRow(steps, false, 100))).toBe('plan ▰▰▱▱ 2/4 ‖')
-  expect(text(planRow(steps, true, 100))).toBe('plan ▰▰▱▱ 2/4')
+  expect(text(planRow(steps, false, 100))).toBe('plan ▮▮▯▯ 2/4 ‖')
+  expect(text(planRow(steps, true, 100))).toBe('plan ▮▮▯▯ 2/4')
 })
 
 test('agents row shows every agent whose description has room, and hands spare cells to a longer one', () => {

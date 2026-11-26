@@ -7,7 +7,8 @@ const MIN_TEXT = 12
 // A type cut shorter than this names nothing, so it is left out instead.
 const MIN_TYPE = 4
 export const SEP = ' · '
-const MARK = { completed: '☑', in_progress: '▶', pending: '☐' } as const
+// ▮ and ▯ come from one font where the app's own has neither; a pair drawn from two fonts differs in size.
+const MARK = { completed: '▮', in_progress: '▶', pending: '▯' } as const
 const PAUSE = '‖'
 const DIM: TextProps = { dimColor: true }
 
@@ -65,7 +66,9 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
   const marks =
     steps.length * 4 > cols
       ? []
-      : steps.map((s): Span => (s.status === 'completed' ? ['▰', tone('success')] : ['▱', s.status === 'in_progress' ? tone('claude') : DIM]))
+      : steps.map((s): Span =>
+          s.status === 'completed' ? [MARK.completed, tone('success')] : [MARK.pending, s.status === 'in_progress' ? tone('claude') : DIM],
+        )
   const count = `${marks.length > 0 ? ' ' : ''}${done}/${steps.length}`
   const row: Span[] = [['plan ', DIM], ...marks, [count, { dimColor: true, tabular: true }]]
   if (current === undefined) {

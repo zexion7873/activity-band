@@ -8,7 +8,7 @@ const CELL = 150
 
 // The plan row's marks alone, then its step in progress as the mark and a bar standing for the text.
 const { plan } = sample(100)
-const marks = plan.filter(([text]) => text === '▰' || text === '▱')
+const marks = plan.filter(([text]) => text === '▮' || text === '▯')
 const current = plan.filter(([text]) => text.includes('▶')).map(([, style]): [string, typeof style] => ['▶', style])
 const x = (SIZE - columns(marks) * CELL) / 2
 
