@@ -3,7 +3,9 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import type { PlanStep } from '../types'
+import { agentsRow, cells, planRow } from '../hooks/rows'
+import type { Span } from '../hooks/rows'
+import type { ActivityAgent, PlanStep } from '../types'
 
 const NOW = Date.parse('2026-11-25T12:00:00Z')
 
@@ -54,6 +56,28 @@ const engine = (on: On) => {
   on('tool.call', () => ({ result: {} }))
   on('ui.render', ($, e) => $.ui.resolve(e).Box({}))
 }
+
+const text = (row: readonly Span[]) => row.map(([t]) => t).join('')
+
+const working = (type: string, description: string, status: string, minutesAgo: number): ActivityAgent => ({
+  id: `${type}:${description}`,
+  type,
+  description,
+  label: description,
+  status,
+  startTime: NOW - minutesAgo * 60_000,
+})
+
+const LONG_PLAN: PlanStep[] = Array.from({ length: 30 }, (_, i) => ({
+  content: `step number ${i + 1} with a longer description`,
+  status: i < 12 ? 'completed' : i === 12 ? 'in_progress' : 'pending',
+}))
+
+const TWO_AGENTS = [
+  working('general-purpose', 'review the diff', 'waiting', 5),
+  working('Explore', 'map the hooks', 'running', 3),
+]
+const LONG_TYPE = [working('some-plugin:very-long-agent-type-name', 'do the thing', 'running', 1)]
 
 test('plan row shows the count and the step in progress, and follows an advance', async ($, on) => {
   mock.clock(on, { now: NOW })
@@ -323,4 +347,83 @@ test('done and start mark steps by their 1-based number', () => {
 
 test('a malformed step list leaves the plan as it was', () => {
   expect(applyPlan(PLAN, { items: [{ content: 'no status' }] })).toEqual(PLAN)
+})
+
+test('plan row stays paused through a later turn that leaves the plan alone', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  const row = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const line = (await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text
+    await ui.unmount()
+    return line
+  }
+
+  await $.turn.start({ text: 'fix the bug', turnId: 't1' })
+  await call($, UPDATE_PLAN, { items: PLAN })
+  expect(await row()).toBe('plan ▰▱▱ 1/3 ▶ write the fix → run the tests')
+
+  await $.turn.start({ text: 'something else', turnId: 't2' })
+  expect(await row()).toBe('plan ▰▱▱ 1/3 ‖ write the fix')
+
+  await $.turn.start({ text: 'map the hooks', turnId: 't3', agentId: 'a1' })
+  await call($, UPDATE_PLAN, { advance: true })
+  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+
+  await $.turn.start({ text: 'read the tests', turnId: 't4', agentId: 'a1' })
+  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+})
+
+test('plan row drops its marks before the step in progress loses its room', () => {
+  expect(text(planRow(LONG_PLAN, true, 100))).toBe(
+    'plan 12/30 ▶ step number 13 with a longer description → step number 14 with a longer description',
+  )
+  expect(text(planRow(LONG_PLAN, true, 40))).toBe('plan 12/30 ▶ step number 13 with a long…')
+})
+
+test('plan row gives every step in progress the accent mark', () => {
+  const steps: PlanStep[] = [
+    { content: 'a', status: 'in_progress' },
+    { content: 'b', status: 'in_progress' },
+    { content: 'c', status: 'pending' },
+  ]
+  const marks = planRow(steps, true, 100).filter(([t]) => t === '▱')
+  expect(marks.map(([, style]) => style?.color)).toEqual(['claude', 'claude', undefined])
+})
+
+test('plan row shows the pause mark with no step in progress and no turn running', () => {
+  const steps: PlanStep[] = [
+    { content: 'a', status: 'completed' },
+    { content: 'b', status: 'completed' },
+    { content: 'c', status: 'pending' },
+    { content: 'd', status: 'pending' },
+  ]
+  expect(text(planRow(steps, false, 100))).toBe('plan ▰▰▱▱ 2/4 ‖')
+  expect(text(planRow(steps, true, 100))).toBe('plan ▰▰▱▱ 2/4')
+})
+
+test('agents row shows every agent whose description has room, and hands spare cells to a longer one', () => {
+  const three = ['map hooks', 'map tests', 'map tools'].map(d => working('Explore', d, 'running', 1))
+  expect(text(agentsRow(three, NOW, 80))).toBe(
+    'agents 3 Explore: map hooks 1m · Explore: map tests 1m · Explore: map tools 1m',
+  )
+  const uneven = ['lint', 'rewrite the allocation loop'].map(d => working('Explore', d, 'running', 1))
+  expect(text(agentsRow(uneven, NOW, 60))).toBe('agents 2 Explore: lint 1m · Explore: rewrite the allocat… 1m')
+})
+
+test('agents row gives up the type before the description', () => {
+  expect(text(agentsRow(TWO_AGENTS, NOW, 60))).toBe('agents 2 general-purpose: review the diff waiting 5m +1')
+  expect(text(agentsRow(TWO_AGENTS, NOW, 45))).toBe('agents 2 general…: review the… waiting 5m +1')
+  expect(text(agentsRow(TWO_AGENTS, NOW, 40))).toBe('agents 2 review the diff waiting 5m +1')
+  expect(text(agentsRow(LONG_TYPE, NOW, 40))).toBe('agents 1 some-plugin:v…: do the thing 1m')
+})
+
+test('no row is wider than the width it was given', () => {
+  const widths = Array.from({ length: 120 }, (_, i) => i + 1)
+  const over = (row: (cols: number) => Span[]) => widths.filter(cols => cells(text(row(cols))) > cols)
+  expect(over(cols => planRow(LONG_PLAN, true, cols))).toEqual([])
+  expect(over(cols => planRow(PLAN, false, cols))).toEqual([])
+  expect(over(cols => agentsRow(TWO_AGENTS, NOW, cols))).toEqual([])
+  expect(over(cols => agentsRow(LONG_TYPE, NOW, cols))).toEqual([])
 })

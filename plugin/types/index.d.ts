@@ -13,6 +13,6 @@ export type ActivityAgent = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'activity-band': { plan: PlanStep[]; agents: Shaped<ActivityAgent[]> }
+    'activity-band': { plan: PlanStep[]; agents: Shaped<ActivityAgent[]>; stale: boolean }
   }
 }

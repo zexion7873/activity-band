@@ -24,10 +24,10 @@ says otherwise.
   reads as a broken mod.
 - **Record only a call that went through.** A plan call that was refused
   changes nothing. The same guard skips one that errored, which no test covers.
-- **Never fail what it watches.** The `tool.call` and `agent.spawn` hooks
-  return the result of `next(e)` whatever happens to their own recording: each
-  write ends in `.catch`. No test yet: in the harness a failing `agent.list`
-  does not fail the spawn with or without the catch.
+- **Never fail what it watches.** The `tool.call`, `agent.spawn` and
+  `turn.start` hooks return the result of `next(e)` whatever happens to their
+  own recording: each write ends in `.catch`. No test yet: in the harness a
+  failing `agent.list` does not fail the spawn with or without the catch.
 - **Ignore a subagent's plan calls.** A call with an `agentId` is not the plan
   the user sees.
 - **Empty the plan row at wrap-up.** The app checks the whole list off there,
@@ -44,11 +44,30 @@ says otherwise.
   No test yet.
 - **Draw a plan as paused when no turn is running.** A turn that stops before
   its wrap-up leaves steps undone; with `e.props.isWorking` false the row is
-  dim and `‖` stands where `▶` would claim work nobody is doing.
-- **Fill one mark for each finished step, no more.** The step in progress is a
-  hollow mark in the accent color, so the filled marks agree with the count.
+  dim and `‖` stands where `▶` would claim work nobody is doing. The mark is
+  drawn with no step in progress too, so a stopped plan between two steps does
+  not differ from a live one by brightness alone.
+- **Keep a plan paused until the running turn writes it.** A main-loop
+  `turn.start` marks the stored plan stale and an `update_plan` that goes
+  through clears the mark; without it an interrupted turn's step is drawn as
+  the work of whatever turn comes next. A subagent's `turn.start` marks
+  nothing.
+- **Fill one mark for each finished step, no more.** Every step in progress is
+  a hollow mark in the accent color, so the filled marks agree with the count
+  and the row agrees with its card.
+- **Let the marks give way before the step in progress.** A plan whose marks
+  would take more than a quarter of the row is drawn with its count alone: the
+  two say the same thing, and the step's text is what the row is for.
 - **Count width in cells, not characters.** A CJK character takes two; a cut
   by `length` overflows `e.props.bodyColumns`.
+- **Hand back no row wider than its width.** Each builder ends in `fit`, so
+  the count holds at any width, not only where the layout had room to give way.
+- **Hide an agent only when its description has no room.** An agent stays on
+  the row while its description gets the smaller of its own width and
+  `MIN_TEXT`, and cells a short description leaves go to a longer one.
+- **Give up an agent's type before its description.** On a row too narrow for
+  both, the type is cut, then left out; it tells the reader less than the
+  description does, and a plugin's type can be any length.
 - **Say an agent's status in a word.** One that is not running shows the word
   before its minutes; the warning color on `waiting` only adds to it.
 - **Change the agents shape tag with `ActivityAgent`.** State outlives a
@@ -56,8 +75,10 @@ says otherwise.
   missing. No test.
 
 Both hover cards are pinned by tests and have been watched in the desktop app,
-with the colors, the paused row and the cut at a narrow width. In a real
-terminal no row has been watched.
+with the colors, the paused row and the cut at a narrow width. Not watched
+there: a plan held paused through a later turn, a plan drawn without its marks,
+and an agent drawn without its type. In a real terminal no row has been
+watched.
 
 ## The plan source is not a documented interface
 

@@ -9,6 +9,8 @@ import type { Span } from './rows'
 const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[])
 // Change the tag with ActivityAgent: a reload then reads the stored list as empty, not as agents missing a field.
 const agents = atom({ plugin: 'activity-band', key: 'agents' } as const, [] as ActivityAgent[], { shape: 'agents-2' })
+// True from a main turn's start until that turn writes the plan: steps an earlier turn left are not this turn's work.
+const stale = atom({ plugin: 'activity-band', key: 'stale' } as const, false)
 
 const CARD_COLS = 100
 // The engine lists a finished agent until it drops its task; only these are still at work.
@@ -35,10 +37,18 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('turn.start', async ($, e, next) => {
+    const r = await next(e)
+    if (e.agentId === undefined) await update($, stale, () => true).catch(quiet)
+    return r
+  })
+
   on('tool.call', { tool: 'mcp__ccd_turn__update_plan' }, async ($, e, next) => {
     const r = await next(e)
     if (e.agentId === undefined && r.deny === undefined && r.isError !== true) {
-      await update($, plan, prev => applyPlan(prev, e)).catch(quiet)
+      await update($, plan, prev => applyPlan(prev, e))
+        .then(() => update($, stale, () => false))
+        .catch(quiet)
     }
     return r
   })
@@ -78,8 +88,9 @@ export const register: Register = on => {
     if (!hasPlan && working.length === 0) return below
 
     const now = await $.clock.now()
-    // A turn that stopped short of its wrap-up leaves steps undone: the row stays, drawn as paused.
-    const { isWorking, bodyColumns } = e.props
+    // A turn that stopped short of its wrap-up leaves steps undone: the row stays, drawn as paused until a turn takes them up.
+    const { bodyColumns } = e.props
+    const isLive = e.props.isWorking && !(await read($, stale))
     const { Box, Text } = $.ui.resolve(e)
 
     // One Text a row, cut at the edge: sibling Texts wrap into columns once the line overflows.
@@ -92,7 +103,7 @@ export const register: Register = on => {
         ))}
       </Text>
     )
-    const planLine = hasPlan && line(planRow(steps, isWorking, bodyColumns), { wrap: 'truncate-end' })
+    const planLine = hasPlan && line(planRow(steps, isLive, bodyColumns), { wrap: 'truncate-end' })
     const agentsLine = working.length > 0 && line(agentsRow(working, now, bodyColumns), { wrap: 'truncate-end' })
 
     if (e.surface === 'terminal') {
@@ -113,7 +124,7 @@ export const register: Register = on => {
             {planLine}
             {/* The desktop pops an absolute hover reveal above its keyed Box as a bordered card, whatever the offsets. */}
             <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} flexDirection="column">
-              {steps.map((s, i) => line(stepLine(s, isWorking), { key: `${i}` }))}
+              {steps.map((s, i) => line(stepLine(s, isLive), { key: `${i}` }))}
             </Box>
           </Box>
         )}
