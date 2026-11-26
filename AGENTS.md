@@ -24,10 +24,10 @@ says otherwise.
   reads as a broken mod.
 - **Record only a call that went through.** A plan call that was refused
   changes nothing. The same guard skips one that errored, which no test covers.
-- **Never fail what it watches.** The `tool.call` and `agent.spawn` hooks
-  return the result of `next(e)` whatever happens to their own recording: each
-  write ends in `.catch`. No test yet: in the harness a failing `agent.list`
-  does not fail the spawn with or without the catch.
+- **Never fail what it watches.** The `tool.call`, `agent.spawn` and
+  `turn.start` hooks return the result of `next(e)` whatever happens to their
+  own recording: each write ends in `.catch`. No test yet: in the harness a
+  failing `agent.list` does not fail the spawn with or without the catch.
 - **Ignore a subagent's plan calls.** A call with an `agentId` is not the plan
   the user sees.
 - **Empty the plan row at wrap-up.** The app checks the whole list off there,
@@ -47,6 +47,11 @@ says otherwise.
   dim and `‖` stands where `▶` would claim work nobody is doing. The mark is
   drawn with no step in progress too, so a stopped plan between two steps does
   not differ from a live one by brightness alone.
+- **Keep a plan paused until the running turn writes it.** A main-loop
+  `turn.start` marks the stored plan stale and an `update_plan` that goes
+  through clears the mark; without it an interrupted turn's step is drawn as
+  the work of whatever turn comes next. A subagent's `turn.start` marks
+  nothing.
 - **Fill one mark for each finished step, no more.** Every step in progress is
   a hollow mark in the accent color, so the filled marks agree with the count
   and the row agrees with its card.
@@ -71,8 +76,9 @@ says otherwise.
 
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row and the cut at a narrow width. Not watched
-there: a plan drawn without its marks, and an agent drawn without its type. In
-a real terminal no row has been watched.
+there: a plan held paused through a later turn, a plan drawn without its marks,
+and an agent drawn without its type. In a real terminal no row has been
+watched.
 
 ## The plan source is not a documented interface
 

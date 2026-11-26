@@ -24,17 +24,20 @@ Worth knowing before you decide whether something is in scope.
   it uses only whether the call succeeded.
 - It reads the session's agent list: each agent's id, type, description,
   latest progress summary, status and start time.
-- It keeps both in the session's state, in memory, and draws them as text
-  above the prompt.
+- It hears each turn start, of which it uses only whether the turn is the main
+  conversation's or a subagent's. It does not read the prompt.
+- It keeps the task list, the agent list and whether the task list was left by
+  an earlier turn in the session's state, in memory, and draws the two lists as
+  text above the prompt.
 - It writes no file and nothing to the per-plugin store.
 - It makes no network request and no model call, and runs no process.
-- The calls it watches pass through with their arguments and results
-  untouched.
+- The calls and turn starts it watches pass through with their arguments and
+  results untouched.
 
 ### In scope
 
-- The mod changing, delaying or blocking a tool call or an agent spawn it
-  watches.
+- The mod changing, delaying or blocking a tool call, an agent spawn or a turn
+  start it watches.
 - Anything it read leaving the machine or being written to disk.
 - A step text, agent description or progress summary that makes the band draw
   something other than that text.

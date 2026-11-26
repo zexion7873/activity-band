@@ -349,6 +349,32 @@ test('a malformed step list leaves the plan as it was', () => {
   expect(applyPlan(PLAN, { items: [{ content: 'no status' }] })).toEqual(PLAN)
 })
 
+test('plan row stays paused through a later turn that leaves the plan alone', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  const row = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const line = (await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text
+    await ui.unmount()
+    return line
+  }
+
+  await $.turn.start({ text: 'fix the bug', turnId: 't1' })
+  await call($, UPDATE_PLAN, { items: PLAN })
+  expect(await row()).toBe('plan ▰▱▱ 1/3 ▶ write the fix → run the tests')
+
+  await $.turn.start({ text: 'something else', turnId: 't2' })
+  expect(await row()).toBe('plan ▰▱▱ 1/3 ‖ write the fix')
+
+  await $.turn.start({ text: 'map the hooks', turnId: 't3', agentId: 'a1' })
+  await call($, UPDATE_PLAN, { advance: true })
+  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+
+  await $.turn.start({ text: 'read the tests', turnId: 't4', agentId: 'a1' })
+  expect(await row()).toBe('plan ▰▰▱ 2/3 ▶ run the tests')
+})
+
 test('plan row drops its marks before the step in progress loses its room', () => {
   expect(text(planRow(LONG_PLAN, true, 100))).toBe(
     'plan 12/30 ▶ step number 13 with a longer description → step number 14 with a longer description',

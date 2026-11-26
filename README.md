@@ -34,7 +34,8 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   row has room for it. A plan too long for its marks to fit in a quarter of
   the row shows the count without them. It is drawn while a plan has a step
   left, and leaves when the turn wraps up. A turn that stops before its
-  wrap-up leaves the row dimmed, with `‖` in place of `▶`, until the next plan.
+  wrap-up leaves the row dimmed, with `‖` in place of `▶`, and it stays that
+  way through later turns until one of them updates the plan.
 - **The agents row:** how many subagents are still at work, then as many of
   them as the row has room for, as `type: description` with the minutes since
   each started, then `+N` for the rest. On a row too narrow for both, the type
@@ -86,13 +87,14 @@ plugin.
 | Hook | Reads | Changes |
 | --- | --- | --- |
 | `session.start` | nothing | starts a 30 second timer that re-reads the agent list |
-| `tool.call` (the desktop app's `update_plan`) | the call's arguments, after it ran: each step's text and status | the plan kept in the session's state; the call and its result pass through untouched |
+| `turn.start` | only whether the turn is the main conversation's or a subagent's | marks the kept plan as left by an earlier turn, which draws it paused; the turn starts as it would |
+| `tool.call` (the desktop app's `update_plan`) | the call's arguments, after it ran: each step's text and status | the plan kept in the session's state, and clears that mark; the call and its result pass through untouched |
 | `tool.call` (the desktop app's `wrap_up`) | only whether the call succeeded | marks every step done, which empties the plan row |
 | `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status and start time | the list of working agents kept in the session's state |
 | `ui.render` (`AbovePrompt`) | that state, the clock, the band's width and whether a turn is running | draws the rows, with whatever another mod drew on this mod's row kept above them |
 
-Both values live in the session's state, in memory. Nothing is written to disk
-or to the per-plugin store, and nothing outlives the session.
+All three values live in the session's state, in memory. Nothing is written
+to disk or to the per-plugin store, and nothing outlives the session.
 
 ## Limits
 
