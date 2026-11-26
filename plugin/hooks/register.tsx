@@ -6,8 +6,8 @@ import { applyPlan, finishPlan } from './plan'
 import { agentFacts, agentHead, agentsRow, clip, nested, planRow, stepLine } from './rows'
 import type { Span } from './rows'
 
-const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[])
-// Change the tag with ActivityAgent: a reload then reads the stored list as empty, not as agents missing a field.
+// Change a tag with its type, PlanStep or ActivityAgent: a reload then reads the stored list as empty, not as items missing a field.
+const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[], { shape: 'plan-2' })
 const agents = atom({ plugin: 'activity-band', key: 'agents' } as const, [] as ActivityAgent[], { shape: 'agents-3' })
 // True from a main turn's start until that turn writes the plan: steps an earlier turn left are not this turn's work.
 const stale = atom({ plugin: 'activity-band', key: 'stale' } as const, false)
@@ -63,7 +63,9 @@ export const register: Register = on => {
   on('tool.call', { tool: 'mcp__ccd_turn__update_plan' }, async ($, e, next) => {
     const r = await next(e)
     if (e.agentId === undefined && r.deny === undefined && r.isError !== true) {
-      await update($, plan, prev => applyPlan(prev, e))
+      await $.clock
+        .now()
+        .then(now => update($, plan, prev => applyPlan(prev, e, now)))
         .then(() => update($, stale, () => false))
         .catch(quiet)
     }
@@ -117,7 +119,7 @@ export const register: Register = on => {
         ))}
       </Text>
     )
-    const planLine = hasPlan && line(planRow(steps, isLive, bodyColumns), { wrap: 'truncate-end' })
+    const planLine = hasPlan && line(planRow(steps, isLive, bodyColumns, now), { wrap: 'truncate-end' })
     const agentsLine = working.length > 0 && line(agentsRow(working, now, bodyColumns), { wrap: 'truncate-end' })
 
     if (e.surface === 'terminal') {

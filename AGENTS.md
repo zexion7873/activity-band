@@ -58,6 +58,10 @@ says otherwise.
   through clears the mark; without it an interrupted turn's step is drawn as
   the work of whatever turn comes next. A subagent's `turn.start` marks
   nothing.
+- **Time a step from the plan call that made it in progress.** A step keeps
+  that time while it stays in progress, through a whole list sent again (the
+  step is matched by its text). The row shows it from a minute on and not on
+  a paused row, where nothing is running.
 - **Fill one mark for each finished step, no more.** Every step in progress is
   a hollow mark in the accent color, so the filled marks are the count of
   finished steps and the row agrees with its card.
@@ -101,9 +105,9 @@ says otherwise.
   out when the engine has none; the row carries none of them.
 - **Indent a spawned agent under its parent in the card.** One whose parent
   is not listed stands at the top; the row keeps the list's order.
-- **Change the agents shape tag with `ActivityAgent`.** State outlives a
-  reload, and a list stored under the old type would be drawn with fields
-  missing. No test.
+- **Change a shape tag with its type: the agents tag with `ActivityAgent`,
+  the plan tag with `PlanStep`.** State outlives a reload, and a list stored
+  under the old type would be drawn with fields missing. No test.
 
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row, a plan held paused through a later turn, the
@@ -111,7 +115,8 @@ cut at a narrow width, a plan drawn without its marks and an agent drawn
 without its type. Not watched there: the `▮` and `▯` marks on the row and in
 the plan card, a row with marks and no count, `12/30 done`, the dim type, a
 dim `waiting`, a run written in hours, a failed or stopped agent kept on the
-row, `quiet`, and the card's facts line and its indent for a spawned agent.
+row, `quiet`, the card's facts line and its indent for a spawned agent, and
+the minutes after the step in progress.
 In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
@@ -132,7 +137,8 @@ real row needs the desktop app.
 
 Neither may import a `claude-code` value; a type import is erased and is fine.
 The reducer is tested as a plain function, and its input is model-written JSON
-it has to check for itself. Every generator under `tools/` imports `rows.ts`
+it has to check for itself. It takes the time as an argument, read from
+`$.clock.now()` in the hook, and never reads a clock itself. Every generator under `tools/` imports `rows.ts`
 under plain node, and that import is what makes the images the mod's own
 drawing rather than a copy of it.
 
