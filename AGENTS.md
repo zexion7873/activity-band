@@ -95,6 +95,12 @@ says otherwise.
   agent or a plan's approval, and nothing on `AgentInfo` tells one from
   another (2.1.330), so a color would call for the person in cases that need
   nobody.
+- **Label an agent's cost an estimate, and keep its facts in the card.** The
+  engine asks a mod that shows `cost.usd` to say it is an estimate. Context
+  use, model and cost are a dim line under the agent in the card, each left
+  out when the engine has none; the row carries none of them.
+- **Indent a spawned agent under its parent in the card.** One whose parent
+  is not listed stands at the top; the row keeps the list's order.
 - **Change the agents shape tag with `ActivityAgent`.** State outlives a
   reload, and a list stored under the old type would be drawn with fields
   missing. No test.
@@ -104,8 +110,9 @@ with the colors, the paused row, a plan held paused through a later turn, the
 cut at a narrow width, a plan drawn without its marks and an agent drawn
 without its type. Not watched there: the `▮` and `▯` marks on the row and in
 the plan card, a row with marks and no count, `12/30 done`, the dim type, a
-dim `waiting`, and a run written in hours. In a real terminal no row has been
-watched.
+dim `waiting`, a run written in hours, a failed or stopped agent kept on the
+row, `quiet`, and the card's facts line and its indent for a spawned agent.
+In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
 

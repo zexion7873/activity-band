@@ -13,6 +13,11 @@ export type ActivityAgent = {
   endedAt?: number
   // When a running agent's loop last sent a request, kept only while its token count stands still.
   quietSince?: number
+  parentId?: string
+  model?: string
+  // The share of its model's context window its token count takes, in whole percent.
+  contextPercent?: number
+  costUsd?: number
 }
 
 declare module 'claude-code' {

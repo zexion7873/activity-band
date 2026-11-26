@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import { agentHead, agentsRow, cells, elapsed, planRow } from '../hooks/rows'
+import { agentFacts, agentHead, agentsRow, cells, elapsed, nested, planRow } from '../hooks/rows'
 import type { Span } from '../hooks/rows'
 import type { ActivityAgent, PlanStep } from '../types'
 
@@ -554,6 +554,54 @@ test('only a running agent whose token count stands still is quiet since its las
   expect((await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text).toBe(
     'agents 4 Explore: map the hooks quiet 3m · Explore: read the tests 5m · Explore: check the docs 1m · Explore: review the diff waiting 5m',
   )
+  await ui.unmount()
+})
+
+test('agents card gives context use, model and an estimated cost, each only when known', () => {
+  const a = working('Explore', 'map the hooks', 'running', 3)
+  expect(agentFacts(a)).toBe('')
+  expect(agentFacts({ ...a, model: 'claude-haiku-5-5' })).toBe('claude-haiku-5-5')
+  expect(agentFacts({ ...a, contextPercent: 43, model: 'claude-haiku-5-5', costUsd: 0.1234 })).toBe(
+    'context 43% · claude-haiku-5-5 · est. $0.12',
+  )
+})
+
+test('agents card lists each agent under the one that spawned it', () => {
+  const a = (id: string, parentId?: string): ActivityAgent => ({ ...working('Explore', id, 'running', 1), id, parentId })
+  const list = [a('a1'), a('a2'), a('a3', 'a1'), a('a4', 'a3'), a('a5', 'not listed')]
+  expect(nested(list).map(([agent, depth]) => [agent.id, depth])).toEqual([
+    ['a1', 0],
+    ['a3', 1],
+    ['a4', 2],
+    ['a2', 0],
+    ['a5', 0],
+  ])
+})
+
+test("desktop agents card draws an agent's facts under it, and a spawned agent indented", async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  on('agent.spawn', () => ({ agentId: 'a1', model: 'm' }))
+  on('agent.list', () => ({
+    value: [
+      {
+        ...agent('a1', 'map the hooks', 'running', 3),
+        model: 'claude-haiku-5-5',
+        contextWindowSize: 200_000,
+        tokenCount: 86_000,
+        tokenSamples: [80_000, 86_000],
+        cost: { usd: 0.1234 },
+      },
+      { ...agent('a2', 'read the tests', 'running', 1), parentId: 'a1' },
+    ] as AgentInfo[],
+  }))
+  await $.agent.spawn(SPAWN)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const facts = await ui.find({ type: 'Text', text: /^context 43% · claude-haiku-5-5 · est\. \$0\.12$/ })
+  expect(facts?.props.dimColor).toBe(true)
+  const indents = (await ui.findAll({ type: 'Box' })).map(b => b.props.paddingLeft).filter(n => n !== undefined)
+  expect(indents).toEqual([0, 2])
   await ui.unmount()
 })
 

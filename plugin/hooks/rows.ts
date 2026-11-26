@@ -122,6 +122,26 @@ export const stepLine = (s: PlanStep, isWorking: boolean): Span[] => {
     : [[MARK.in_progress, { color: 'claude' }], [` ${s.content}`, { weight: 'semibold' }]]
 }
 
+// The engine calls its cost an estimate and asks a mod that shows it to say so.
+export const agentFacts = (a: ActivityAgent) =>
+  [
+    a.contextPercent === undefined ? '' : `context ${a.contextPercent}%`,
+    a.model ?? '',
+    a.costUsd === undefined ? '' : `est. $${a.costUsd.toFixed(2)}`,
+  ]
+    .filter(fact => fact !== '')
+    .join(SEP)
+
+// Each agent under the one that spawned it; one whose parent is not listed stands at the top.
+export const nested = (list: readonly ActivityAgent[]): [agent: ActivityAgent, depth: number][] => {
+  const listed = new Set(list.map(a => a.id))
+  const under = (parent: string | undefined, depth: number): [ActivityAgent, number][] =>
+    list
+      .filter(a => (a.parentId !== undefined && listed.has(a.parentId) ? a.parentId : undefined) === parent)
+      .flatMap((a): [ActivityAgent, number][] => [[a, depth], ...under(a.id, depth + 1)])
+  return under(undefined, 0)
+}
+
 export const agentsRow = (list: readonly ActivityAgent[], now: number, cols: number): Span[] => {
   const head = `agents ${list.length} `
   const need = (a: ActivityAgent) => Math.min(cells(a.description), MIN_TEXT)

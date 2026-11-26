@@ -3,7 +3,7 @@ import type { AgentInfo, Hook, Register, TextProps } from 'claude-code'
 
 import type { ActivityAgent, PlanStep } from '../types'
 import { applyPlan, finishPlan } from './plan'
-import { agentHead, agentsRow, clip, planRow, stepLine } from './rows'
+import { agentFacts, agentHead, agentsRow, clip, nested, planRow, stepLine } from './rows'
 import type { Span } from './rows'
 
 const plan = atom({ plugin: 'activity-band', key: 'plan' } as const, [] as PlanStep[])
@@ -21,8 +21,14 @@ const ENDED: readonly string[] = ['failed', 'killed']
 const ENDED_SHOWN = 5 * 60_000
 
 const track = (prev: readonly ActivityAgent[], list: readonly AgentInfo[], now: number): ActivityAgent[] =>
-  list.flatMap(({ id, type, description, label, status, startTime, tokenCount, tokenSamples, lastRequest }): ActivityAgent[] => {
-    const a = { id, type, description, label, status, startTime }
+  list.flatMap((info): ActivityAgent[] => {
+    const { id, type, description, label, status, startTime, tokenCount, tokenSamples, lastRequest } = info
+    const { parentId, model, contextWindowSize, cost } = info
+    const a: ActivityAgent = { id, type, description, label, status, startTime }
+    if (parentId !== undefined) a.parentId = parentId
+    if (model !== undefined) a.model = model
+    if (contextWindowSize !== undefined) a.contextPercent = Math.round((tokenCount / contextWindowSize) * 100)
+    if (cost !== undefined) a.costUsd = cost.usd
     // A long answer still streaming moves the count, so a count that stands still is what makes an old request quiet.
     const isStill = status === 'running' && lastRequest !== undefined && tokenSamples.every(n => n === tokenCount)
     if (ACTIVE.includes(status)) return [isStill ? { ...a, quietSince: lastRequest.at } : a]
@@ -140,16 +146,16 @@ export const register: Register = on => {
           <Box key="agents" flexDirection="row" alignItems="center">
             {agentsLine}
             <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} flexDirection="column">
-              {working.flatMap(a => {
+              {nested(working).map(([a, depth]) => {
                 const summary = a.label.trim().replace(/\n[\s\S]*/, '')
-                const head = line(agentHead(a, now), { key: a.id })
-                if (summary === '' || summary === a.description) return [head]
-                return [
-                  head,
-                  <Text key={`${a.id}:label`} dimColor>
-                    {clip(summary, CARD_COLS)}
-                  </Text>,
-                ]
+                const facts = agentFacts(a)
+                return (
+                  <Box key={a.id} flexDirection="column" paddingLeft={depth * 2}>
+                    {line(agentHead(a, now), {})}
+                    {facts !== '' && <Text dimColor>{facts}</Text>}
+                    {summary !== '' && summary !== a.description && <Text dimColor>{clip(summary, CARD_COLS)}</Text>}
+                  </Box>
+                )
               })}
             </Box>
           </Box>

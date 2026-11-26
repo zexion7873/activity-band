@@ -49,8 +49,11 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   left on it.
 - **A card on hover** (desktop app): every step with its mark (`▮` done, `▶` in
   progress, `▯` pending) over the plan row; every working agent with its status
-  over the agents row, and under it the first line of its latest progress
-  summary when it has one.
+  over the agents row, each one indented under the agent that spawned it.
+  Under an agent, when known: how much of its context window it has used, its
+  model and what it has cost so far (`context 43% · claude-haiku-5-5 · est.
+  $0.12`), then the first line of its latest progress summary. The cost is
+  Claude Code's own estimate at list prices, not a bill.
 
 With no plan and no agent at work the mod draws nothing.
 
@@ -95,7 +98,7 @@ plugin.
 | `turn.start` | only whether the turn is the main conversation's or a subagent's | marks the kept plan as left by an earlier turn, which draws it paused; the turn starts as it would |
 | `tool.call` (the desktop app's `update_plan`) | the call's arguments, after it ran: each step's text and status | the plan kept in the session's state, and clears that mark; the call and its result pass through untouched |
 | `tool.call` (the desktop app's `wrap_up`) | only whether the call succeeded | marks every step done, which empties the plan row |
-| `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status, start time, token count with its recent readings, and the time of its last request | the list of working agents kept in the session's state |
+| `agent.spawn`, `turn.complete`, the timer | the session's agent list: each agent's id, type, description, latest progress summary, status, start time, parent agent, model, context window, cost estimate, token count with its recent readings, and the time of its last request | the list of working agents kept in the session's state |
 | `ui.render` (`AbovePrompt`) | that state, the clock, the band's width and whether a turn is running | draws the rows, with whatever another mod drew on this mod's row kept above them |
 
 All three values live in the session's state, in memory. Nothing is written
@@ -118,10 +121,9 @@ to disk or to the per-plugin store, and nothing outlives the session.
   waits for an answer, the app hides every band, this one included.
 - **`quiet` is a measurement, not a verdict.** It means the agent's loop has
   sent no request for that long while its token count stood still. A long
-  build or test run reads `quiet` and is healthy; so does an agent held on a
-  permission prompt, and one that hung. Whether the token count moves while
-  one long answer streams has not been measured; if it does not, such an
-  answer reads `quiet` too.
+  build or test run reads `quiet` and is healthy, and one that hung reads the
+  same. Whether the token count moves while one long answer streams has not
+  been measured; if it does not, such an answer reads `quiet` too.
 - **`waiting` is the engine's word.** It marks an agent held on background
   work of its own, on a plan's approval, or on another agent. It does not
   always mean the agent is waiting for you.
