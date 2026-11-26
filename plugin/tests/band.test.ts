@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import { agentsRow, cells, planRow } from '../hooks/rows'
+import { agentsRow, cells, elapsed, planRow } from '../hooks/rows'
 import type { Span } from '../hooks/rows'
 import type { ActivityAgent, PlanStep } from '../types'
 
@@ -455,6 +455,14 @@ test('agents row gives up the type before the description', () => {
   expect(text(agentsRow(TWO_AGENTS, NOW, 45))).toBe('agents 2 general…: review the… waiting 5m +1')
   expect(text(agentsRow(TWO_AGENTS, NOW, 40))).toBe('agents 2 review the diff waiting 5m +1')
   expect(text(agentsRow(LONG_TYPE, NOW, 40))).toBe('agents 1 some-plugin:v…: do the thing 1m')
+})
+
+test('a run of an hour or more is written in hours', () => {
+  const ago = (minutes: number) => elapsed(NOW, NOW - minutes * 60_000)
+  expect([0.5, 59, 60, 61, 180, 200, 1500].map(ago)).toEqual(['<1m', '59m', '1h', '1h1m', '3h', '3h20m', '25h'])
+  expect(text(agentsRow([working('Explore', 'map the hooks', 'running', 200)], NOW, 100))).toBe(
+    'agents 1 Explore: map the hooks 3h20m',
+  )
 })
 
 test('no row is wider than the width it was given', () => {

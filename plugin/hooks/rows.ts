@@ -50,7 +50,9 @@ const fit = (row: Span[], cols: number): Span[] => {
 
 export const elapsed = (now: number, startTime: number) => {
   const minutes = Math.floor((now - startTime) / 60_000)
-  return minutes < 1 ? '<1m' : `${minutes}m`
+  if (minutes < 1) return '<1m'
+  if (minutes < 60) return `${minutes}m`
+  return `${Math.floor(minutes / 60)}h${minutes % 60 === 0 ? '' : `${minutes % 60}m`}`
 }
 
 const tail = (a: ActivityAgent, now: number) =>
