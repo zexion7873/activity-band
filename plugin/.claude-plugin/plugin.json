@@ -1,6 +1,6 @@
 {
   "name": "activity-band",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Band above the prompt: the plan step in progress and the subagents still running",
   "types": "./types/index.d.ts",
   "author": {
