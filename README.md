@@ -25,14 +25,14 @@ subagents in a side panel. Scroll up, or close the panel, and both are out of
 sight. activity-band puts the two facts you look for on rows above the prompt:
 
 ```
-plan ▮▮▯▯▯ 2/5 ▶ write the fix → run the tests
+plan ▮▮▯▯▯ ▶ write the fix → run the tests
 agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3m
 ```
 
-- **The plan row:** one mark for each step (`▮` done, `▯` not yet), how many
-  are done out of how many, the step in progress, and the next step when the
-  row has room for it. A plan too long for its marks to fit in a quarter of
-  the row shows the count without them. It is drawn while a plan has a step
+- **The plan row:** one mark for each step (`▮` done, `▯` not yet), the step
+  in progress, and the next step when the row has room for it. A plan too
+  long for its marks to fit in a quarter of the row shows a count in their
+  place, as `12/30 done`. It is drawn while a plan has a step
   left, and leaves when the turn wraps up. A turn that stops before its
   wrap-up leaves the row dimmed, with `‖` in place of `▶`, and it stays that
   way through later turns until one of them updates the plan.

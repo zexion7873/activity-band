@@ -79,7 +79,7 @@ const TWO_AGENTS = [
 ]
 const LONG_TYPE = [working('some-plugin:very-long-agent-type-name', 'do the thing', 'running', 1)]
 
-test('plan row shows the count and the step in progress, and follows an advance', async ($, on) => {
+test('plan row shows its marks and the step in progress, and follows an advance', async ($, on) => {
   mock.clock(on, { now: NOW })
   engine(on)
   await call($, UPDATE_PLAN, { items: PLAN })
@@ -87,14 +87,14 @@ test('plan row shows the count and the step in progress, and follows an advance'
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-    expect(texts).toContain('plan ▮▯▯ 1/3 ▶ write the fix → run the tests')
+    expect(texts).toContain('plan ▮▯▯ ▶ write the fix → run the tests')
     await ui.unmount()
   }
 
   await call($, UPDATE_PLAN, { advance: true })
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-  expect(texts).toContain('plan ▮▮▯ 2/3 ▶ run the tests')
+  expect(texts).toContain('plan ▮▮▯ ▶ run the tests')
   await ui.unmount()
 })
 
@@ -155,7 +155,7 @@ test('band keeps what the plugins beneath it drew', async ($, on) => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     expect(await ui.find({ type: 'Text', text: /^beneath$/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /plan ▮▯▯ 1\/3/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /plan ▮▯▯ ▶/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -219,7 +219,7 @@ test('terminal draws each row as one line cut at the edge', async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const lines = (await ui.findAll({ type: 'Text' })).filter(t => t.props.wrap !== undefined)
   expect(lines.map(t => [t.props.wrap, t.text])).toEqual([
-    ['truncate-end', 'plan ▮▯▯ 1/3 ▶ write the fix → run the tests'],
+    ['truncate-end', 'plan ▮▯▯ ▶ write the fix → run the tests'],
     ['truncate-end', 'agents 1 Explore: map the hooks 3m'],
   ])
   await ui.unmount()
@@ -232,7 +232,7 @@ test('plan row goes dim and shows a pause mark when no turn is running', async (
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: false }, surface: 'terminal' })
   const texts = await ui.findAll({ type: 'Text' })
-  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▮▯▯ 1/3 ‖ write the fix'])
+  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▮▯▯ ‖ write the fix'])
   const spans = texts.filter(t => t.props.wrap === undefined)
   expect(spans.every(t => t.props.dimColor === true && t.props.color === undefined)).toBe(true)
   await ui.unmount()
@@ -272,9 +272,9 @@ test('plan row cuts a wide-character step by cells and drops the next step when 
     await ui.unmount()
     return text
   }
-  // 15 cells of head, 15 left: seven two-cell characters and the ellipsis.
-  expect(await row(30)).toBe('plan ▮▯▯ 1/3 ▶ 把殭屍列修好並…')
-  expect(await row(100)).toBe('plan ▮▯▯ 1/3 ▶ 把殭屍列修好並補上測試 → 跑測試')
+  // 11 cells of head, 19 left: nine two-cell characters and the ellipsis.
+  expect(await row(30)).toBe('plan ▮▯▯ ▶ 把殭屍列修好並補上…')
+  expect(await row(100)).toBe('plan ▮▯▯ ▶ 把殭屍列修好並補上測試 → 跑測試')
 })
 
 test('agents row puts a waiting agent first, named and colored', async ($, on) => {
@@ -362,24 +362,24 @@ test('plan row stays paused through a later turn that leaves the plan alone', as
 
   await $.turn.start({ text: 'fix the bug', turnId: 't1' })
   await call($, UPDATE_PLAN, { items: PLAN })
-  expect(await row()).toBe('plan ▮▯▯ 1/3 ▶ write the fix → run the tests')
+  expect(await row()).toBe('plan ▮▯▯ ▶ write the fix → run the tests')
 
   await $.turn.start({ text: 'something else', turnId: 't2' })
-  expect(await row()).toBe('plan ▮▯▯ 1/3 ‖ write the fix')
+  expect(await row()).toBe('plan ▮▯▯ ‖ write the fix')
 
   await $.turn.start({ text: 'map the hooks', turnId: 't3', agentId: 'a1' })
   await call($, UPDATE_PLAN, { advance: true })
-  expect(await row()).toBe('plan ▮▮▯ 2/3 ▶ run the tests')
+  expect(await row()).toBe('plan ▮▮▯ ▶ run the tests')
 
   await $.turn.start({ text: 'read the tests', turnId: 't4', agentId: 'a1' })
-  expect(await row()).toBe('plan ▮▮▯ 2/3 ▶ run the tests')
+  expect(await row()).toBe('plan ▮▮▯ ▶ run the tests')
 })
 
-test('plan row drops its marks before the step in progress loses its room', () => {
+test('plan row gives its marks up for a count before the step in progress loses its room', () => {
   expect(text(planRow(LONG_PLAN, true, 100))).toBe(
-    'plan 12/30 ▶ step number 13 with a longer description → step number 14 with a longer description',
+    'plan 12/30 done ▶ step number 13 with a longer description → step number 14 with a longer descripti…',
   )
-  expect(text(planRow(LONG_PLAN, true, 40))).toBe('plan 12/30 ▶ step number 13 with a long…')
+  expect(text(planRow(LONG_PLAN, true, 40))).toBe('plan 12/30 done ▶ step number 13 with a…')
 })
 
 test('plan row gives every step in progress the accent mark', () => {
@@ -399,8 +399,8 @@ test('plan row shows the pause mark with no step in progress and no turn running
     { content: 'c', status: 'pending' },
     { content: 'd', status: 'pending' },
   ]
-  expect(text(planRow(steps, false, 100))).toBe('plan ▮▮▯▯ 2/4 ‖')
-  expect(text(planRow(steps, true, 100))).toBe('plan ▮▮▯▯ 2/4')
+  expect(text(planRow(steps, false, 100))).toBe('plan ▮▮▯▯ ‖')
+  expect(text(planRow(steps, true, 100))).toBe('plan ▮▮▯▯')
 })
 
 test('agents row shows every agent whose description has room, and hands spare cells to a longer one', () => {

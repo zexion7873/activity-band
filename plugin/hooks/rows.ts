@@ -69,8 +69,10 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
       : steps.map((s): Span =>
           s.status === 'completed' ? [MARK.completed, tone('success')] : [MARK.pending, s.status === 'in_progress' ? tone('claude') : DIM],
         )
-  const count = `${marks.length > 0 ? ' ' : ''}${done}/${steps.length}`
-  const row: Span[] = [['plan ', DIM], ...marks, [count, { dimColor: true, tabular: true }]]
+  // Beside the marks a count reads as the number of the step after it, so it is written only in their place.
+  const count = marks.length > 0 ? '' : `${done}/${steps.length} done`
+  const row: Span[] = [['plan ', DIM], ...marks]
+  if (count !== '') row.push([count, { dimColor: true, tabular: true }])
   if (current === undefined) {
     // Between two steps a stopped plan differs from a live one by brightness alone without it.
     if (!isWorking && done < steps.length) row.push([` ${PAUSE}`, DIM])

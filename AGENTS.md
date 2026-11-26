@@ -54,11 +54,17 @@ says otherwise.
   the work of whatever turn comes next. A subagent's `turn.start` marks
   nothing.
 - **Fill one mark for each finished step, no more.** Every step in progress is
-  a hollow mark in the accent color, so the filled marks agree with the count
-  and the row agrees with its card.
+  a hollow mark in the accent color, so the filled marks are the count of
+  finished steps and the row agrees with its card.
+- **Write the count only in the marks' place.** Beside the marks, `2/5 ▶ write
+  the fix` reads as "step 2 of 5", so a row with marks has no count, and one
+  without them says `12/30 done`.
 - **Let the marks give way before the step in progress.** A plan whose marks
   would take more than a quarter of the row is drawn with its count alone: the
   two say the same thing, and the step's text is what the row is for.
+- **Take both marks from one font.** `▮` and `▯` fall back to the same font
+  where the app's own has neither; a filled and a hollow mark from two fonts
+  differ in size on the desktop. Measured with CoreText, not pinned by a test.
 - **Count width in cells, not characters.** A CJK character takes two; a cut
   by `length` overflows `e.props.bodyColumns`.
 - **Hand back no row wider than its width.** Each builder ends in `fit`, so
