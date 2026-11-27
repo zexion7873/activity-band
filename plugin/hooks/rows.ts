@@ -9,8 +9,8 @@ const MIN_TYPE = 4
 export const SEP = ' · '
 const MARK = { completed: '▰', in_progress: '▶', pending: '▱' } as const
 // Under a proportional face ▰ and ▱ are borrowed from two fonts and differ in size; under the mono face, from one.
-// That one draws them small beside the text, so they go a size up; the terminal has one size.
-const marked = (style: TextProps): TextProps => ({ ...style, mono: true, size: 'heading' })
+// That one draws them small beside the text, so they take the title size; the terminal has one size.
+const marked = (style: TextProps): TextProps => ({ ...style, mono: true, size: 'title' })
 const PAUSE = '‖'
 const DIM: TextProps = { dimColor: true }
 

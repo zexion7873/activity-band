@@ -537,15 +537,15 @@ test('the filled and the hollow mark are drawn in the mono face, on the row and 
   }
 })
 
-test('the filled and the hollow mark are drawn a size up, and nothing else on the row is', () => {
+test('the filled and the hollow mark are drawn at the title size, and nothing else on the row is sized', () => {
   const steps: PlanStep[] = [
     { content: 'a', status: 'completed' },
     { content: 'b', status: 'in_progress' },
     { content: 'c', status: 'pending' },
   ]
   const sized = (spans: Span[]) => spans.filter(([, style]) => style?.size !== undefined).map(([t, style]) => `${t} ${style?.size}`)
-  expect(sized(planRow(steps, true, 100, NOW))).toEqual(['▰ heading', '▱ heading', '▱ heading'])
-  expect(steps.flatMap(s => sized(stepLine(s, true)))).toEqual(['▰ heading', '▱ heading'])
+  expect(sized(planRow(steps, true, 100, NOW))).toEqual(['▰ title', '▱ title', '▱ title'])
+  expect(steps.flatMap(s => sized(stepLine(s, true)))).toEqual(['▰ title', '▱ title'])
 })
 
 test('plan row shows the pause mark with no step in progress and no turn running', () => {

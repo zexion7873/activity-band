@@ -80,14 +80,18 @@ says otherwise.
 - **Let the marks give way before the step in progress.** A plan whose marks
   would take more than a quarter of the row is drawn with its count alone: the
   two say the same thing, and the step's text is what the row is for.
-- **Draw the filled and the hollow mark in the mono face, a size up.** The
-  app's own font has neither `▰` nor `▱`; under a proportional face macOS
-  borrows them from two fonts and the hollow one draws half again as large,
-  under a monospaced one both come from one font. So each carries `mono`. That
-  font draws them 0.29 em tall, small beside the text, so each also carries
-  `size: 'heading'`, the one step between the default and `title`. Both hold
-  on the row and in the card, and the terminal ignores both. The tests pin the
-  props; the sizes were measured with CoreText on macOS, on no other system.
+- **Draw the filled and the hollow mark in the mono face, at the title
+  size.** The app's own font has neither `▰` nor `▱`; under a proportional
+  face macOS borrows them from two fonts and the hollow one draws half again
+  as large, under a monospaced one both come from one font. So each carries
+  `mono`. That font draws them 0.29 em tall, small beside the text, so each
+  also carries `size: 'title'`, the largest step. `heading` is no middle
+  value: the desktop app's stylesheet puts it one pixel above the default
+  (15px to 14px) and `title` at 22px, with a taller line. Both props hold on
+  the row and in the card, and the terminal ignores both. The tests pin the
+  props; the glyphs were measured with CoreText on macOS, on no other system,
+  and the pixel sizes were read from the app's bundle, not traced through its
+  renderer.
 - **Count width in cells, not characters.** A CJK character takes two; a cut
   by `length` overflows `e.props.bodyColumns`.
 - **Hand back no row wider than its width.** Each builder ends in `fit`, so
@@ -132,9 +136,9 @@ the row, the card's facts line and its indent for a spawned agent, and the
 card's buttons: how a `plain` `Button` draws there, the card staying open
 while the pointer moves onto one, a press that opens an agent, the bold mark
 on the agent on screen and `← main conversation`, and `▰` and `▱` in the mono
-face a size up, one size as each other. Not watched there: `12/30 done`, a
-run written in hours, a failed agent kept on the row, `quiet`, and the toast
-on a refusal.
+face at the title size, one size as each other. Not watched there: `12/30
+done`, a run written in hours, a failed agent kept on the row, `quiet`, and
+the toast on a refusal.
 In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
