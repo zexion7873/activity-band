@@ -4,7 +4,7 @@
 
 [![CI: check](https://github.com/zexion7873/activity-band/actions/workflows/check.yml/badge.svg)](https://github.com/zexion7873/activity-band/actions/workflows/check.yml)
 
-<img src="docs/band.svg" width="672" title="Drawn by the mod's own row builders from sample steps and agents, not a screenshot." alt="The band's two rows, drawn by the mod's own row builders from sample steps and agents rather than a screenshot. The plan row: five upright marks, two filled green for finished steps, one hollow in the accent color for the step in progress and two hollow grey for pending ones, then a play mark and 'write the fix' in bold with a dimmed '4m', then an arrow and the next step, 'run the tests', dimmed. The agents row: 'agents 2', then a dimmed 'general-purpose:' before 'review the diff' with a dimmed 'waiting 5m', then a dimmed 'Explore:' before 'map the hooks' with a dimmed '3m'.">
+<img src="docs/band.svg" width="672" title="Drawn by the mod's own row builders from sample steps and agents, not a screenshot." alt="The band's two rows, drawn by the mod's own row builders from sample steps and agents rather than a screenshot. The plan row: five slanted marks, two filled green for finished steps, one hollow in the accent color for the step in progress and two hollow grey for pending ones, then a play mark and 'write the fix' in bold with a dimmed '4m', then an arrow and the next step, 'run the tests', dimmed. The agents row: 'agents 2', then a dimmed 'general-purpose:' before 'review the diff' with a dimmed 'waiting 5m', then a dimmed 'Explore:' before 'map the hooks' with a dimmed '3m'.">
 
 **Shows the plan step in progress and the subagents still running, above the
 Claude Code prompt, so you need not open a panel to see where a turn is.**
@@ -25,11 +25,11 @@ subagents in a side panel. Scroll up, or close the panel, and both are out of
 sight. activity-band puts the two facts you look for on rows above the prompt:
 
 ```
-plan ▮▮▯▯▯ ▶ write the fix 4m → run the tests
+plan ▰▰▱▱▱ ▶ write the fix 4m → run the tests
 agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3m
 ```
 
-- **The plan row:** one mark for each step (`▮` done, `▯` not yet), the step
+- **The plan row:** one mark for each step (`▰` done, `▱` not yet), the step
   in progress with how long it has been so (from a minute on), and the next
   step when the row has room for it. A plan too
   long for its marks to fit in a quarter of the row shows a count in their
@@ -48,8 +48,8 @@ agents 2 general-purpose: review the diff waiting 5m · Explore: map the hooks 3
   as `failed 3m` (in the error color) or `stopped 3m`, the minutes being how
   long it ran, and is counted while it stays. The row leaves when no agent is
   left on it.
-- **A card on hover** (desktop app): every step with its mark (`▮` done, `▶` in
-  progress, `▯` pending) over the plan row; every working agent with its status
+- **A card on hover** (desktop app): every step with its mark (`▰` done, `▶` in
+  progress, `▱` pending) over the plan row; every working agent with its status
   over the agents row, each one indented under the agent that spawned it.
   Under an agent, when known: how much of its context window it has used, its
   model and what it has cost so far (`context 43% · claude-haiku-5-5 · est.

@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import { applyPlan } from '../hooks/plan'
-import { agentFacts, agentHead, agentsRow, cells, elapsed, nested, planRow } from '../hooks/rows'
+import { agentFacts, agentHead, agentsRow, cells, elapsed, nested, planRow, stepLine } from '../hooks/rows'
 import type { Span } from '../hooks/rows'
 import type { ActivityAgent, PlanStep } from '../types'
 
@@ -96,14 +96,14 @@ test('plan row shows its marks and the step in progress, and follows an advance'
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-    expect(texts).toContain('plan ▮▯▯ ▶ write the fix → run the tests')
+    expect(texts).toContain('plan ▰▱▱ ▶ write the fix → run the tests')
     await ui.unmount()
   }
 
   await call($, UPDATE_PLAN, { advance: true })
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
-  expect(texts).toContain('plan ▮▮▯ ▶ run the tests')
+  expect(texts).toContain('plan ▰▰▱ ▶ run the tests')
   await ui.unmount()
 })
 
@@ -113,9 +113,9 @@ test('desktop card lists every step with its mark', async ($, on) => {
   await call($, UPDATE_PLAN, { items: PLAN })
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  expect(await ui.find({ type: 'Text', text: /^▮ read the code$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▰ read the code$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^▶ write the fix$/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^▯ run the tests$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▱ run the tests$/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -164,7 +164,7 @@ test('band keeps what the plugins beneath it drew', async ($, on) => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     expect(await ui.find({ type: 'Text', text: /^beneath$/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /plan ▮▯▯ ▶/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /plan ▰▱▱ ▶/ })).toBeDefined()
     await ui.unmount()
   }
 })
@@ -267,7 +267,7 @@ test('terminal draws each row as one line cut at the edge', async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const lines = (await ui.findAll({ type: 'Text' })).filter(t => t.props.wrap !== undefined)
   expect(lines.map(t => [t.props.wrap, t.text])).toEqual([
-    ['truncate-end', 'plan ▮▯▯ ▶ write the fix → run the tests'],
+    ['truncate-end', 'plan ▰▱▱ ▶ write the fix → run the tests'],
     ['truncate-end', 'agents 1 Explore: map the hooks 3m'],
   ])
   await ui.unmount()
@@ -280,7 +280,7 @@ test('plan row goes dim and shows a pause mark when no turn is running', async (
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: false }, surface: 'terminal' })
   const texts = await ui.findAll({ type: 'Text' })
-  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▮▯▯ ‖ write the fix'])
+  expect(texts.filter(t => t.props.wrap !== undefined).map(t => t.text)).toEqual(['plan ▰▱▱ ‖ write the fix'])
   const spans = texts.filter(t => t.props.wrap === undefined)
   expect(spans.every(t => t.props.dimColor === true && t.props.color === undefined)).toBe(true)
   await ui.unmount()
@@ -297,7 +297,7 @@ test('plan row colors a finished step and the step in progress', async ($, on) =
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect((await ui.find({ type: 'Text', text: /^▮$/ }))?.props.color).toBe('success')
+    expect((await ui.find({ type: 'Text', text: /^▰$/ }))?.props.color).toBe('success')
     expect((await ui.find({ type: 'Text', text: /^ ▶ $/ }))?.props.color).toBe('claude')
     await ui.unmount()
   }
@@ -321,8 +321,8 @@ test('plan row cuts a wide-character step by cells and drops the next step when 
     return text
   }
   // 11 cells of head, 19 left: nine two-cell characters and the ellipsis.
-  expect(await row(30)).toBe('plan ▮▯▯ ▶ 把殭屍列修好並補上…')
-  expect(await row(100)).toBe('plan ▮▯▯ ▶ 把殭屍列修好並補上測試 → 跑測試')
+  expect(await row(30)).toBe('plan ▰▱▱ ▶ 把殭屍列修好並補上…')
+  expect(await row(100)).toBe('plan ▰▱▱ ▶ 把殭屍列修好並補上測試 → 跑測試')
 })
 
 test('agents row names a waiting agent dim, in the order listed', async ($, on) => {
@@ -448,17 +448,17 @@ test('plan row stays paused through a later turn that leaves the plan alone', as
 
   await $.turn.start({ text: 'fix the bug', turnId: 't1' })
   await call($, UPDATE_PLAN, { items: PLAN })
-  expect(await row()).toBe('plan ▮▯▯ ▶ write the fix → run the tests')
+  expect(await row()).toBe('plan ▰▱▱ ▶ write the fix → run the tests')
 
   await $.turn.start({ text: 'something else', turnId: 't2' })
-  expect(await row()).toBe('plan ▮▯▯ ‖ write the fix')
+  expect(await row()).toBe('plan ▰▱▱ ‖ write the fix')
 
   await $.turn.start({ text: 'map the hooks', turnId: 't3', agentId: 'a1' })
   await call($, UPDATE_PLAN, { advance: true })
-  expect(await row()).toBe('plan ▮▮▯ ▶ run the tests')
+  expect(await row()).toBe('plan ▰▰▱ ▶ run the tests')
 
   await $.turn.start({ text: 'read the tests', turnId: 't4', agentId: 'a1' })
-  expect(await row()).toBe('plan ▮▮▯ ▶ run the tests')
+  expect(await row()).toBe('plan ▰▰▱ ▶ run the tests')
 })
 
 test('a step is stamped when it becomes in progress, and keeps its stamp while it stays so', () => {
@@ -486,12 +486,12 @@ test('a step is stamped when it becomes in progress, and keeps its stamp while i
 
 test('plan row says how long the step in progress has run, from a minute on and while a turn runs', () => {
   const since = (minutes: number) => applyPlan([], { items: PLAN }, NOW - minutes * 60_000)
-  expect(text(planRow(since(0.5), true, 100, NOW))).toBe('plan ▮▯▯ ▶ write the fix → run the tests')
-  expect(text(planRow(since(4), true, 100, NOW))).toBe('plan ▮▯▯ ▶ write the fix 4m → run the tests')
+  expect(text(planRow(since(0.5), true, 100, NOW))).toBe('plan ▰▱▱ ▶ write the fix → run the tests')
+  expect(text(planRow(since(4), true, 100, NOW))).toBe('plan ▰▱▱ ▶ write the fix 4m → run the tests')
   expect(planRow(since(4), true, 100, NOW).find(([t]) => t === ' 4m')?.[1]).toEqual({ dimColor: true })
-  expect(text(planRow(since(4), false, 100, NOW))).toBe('plan ▮▯▯ ‖ write the fix')
+  expect(text(planRow(since(4), false, 100, NOW))).toBe('plan ▰▱▱ ‖ write the fix')
   // 11 cells of head and 3 of minutes leave 6: the step's text gives way, the minutes do not.
-  expect(text(planRow(since(4), true, 20, NOW))).toBe('plan ▮▯▯ ▶ write… 4m')
+  expect(text(planRow(since(4), true, 20, NOW))).toBe('plan ▰▱▱ ▶ write… 4m')
 })
 
 test('plan row counts a step from the plan call that started it', async ($, on) => {
@@ -502,7 +502,7 @@ test('plan row counts a step from the plan call that started it', async ($, on) 
 
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.findAll({ type: 'Text' })).find(t => t.props.wrap !== undefined)?.text).toBe(
-    'plan ▮▯▯ ▶ write the fix 4m → run the tests',
+    'plan ▰▱▱ ▶ write the fix 4m → run the tests',
   )
   await ui.unmount()
 })
@@ -520,8 +520,32 @@ test('plan row gives every step in progress the accent mark', () => {
     { content: 'b', status: 'in_progress' },
     { content: 'c', status: 'pending' },
   ]
-  const marks = planRow(steps, true, 100, NOW).filter(([t]) => t === '▯')
+  const marks = planRow(steps, true, 100, NOW).filter(([t]) => t === '▱')
   expect(marks.map(([, style]) => style?.color)).toEqual(['claude', 'claude', undefined])
+})
+
+test('the filled and the hollow mark are drawn in the mono face, on the row and in the card', () => {
+  const steps: PlanStep[] = [
+    { content: 'a', status: 'completed' },
+    { content: 'b', status: 'in_progress' },
+    { content: 'c', status: 'pending' },
+  ]
+  const inMono = (spans: Span[]) => spans.filter(([, style]) => style?.mono === true).map(([t]) => t)
+  for (const isWorking of [true, false]) {
+    expect(inMono(planRow(steps, isWorking, 100, NOW))).toEqual(['▰', '▱', '▱'])
+    expect(steps.flatMap(s => inMono(stepLine(s, isWorking)))).toEqual(['▰', '▱'])
+  }
+})
+
+test('the filled and the hollow mark are drawn a size up, and nothing else on the row is', () => {
+  const steps: PlanStep[] = [
+    { content: 'a', status: 'completed' },
+    { content: 'b', status: 'in_progress' },
+    { content: 'c', status: 'pending' },
+  ]
+  const sized = (spans: Span[]) => spans.filter(([, style]) => style?.size !== undefined).map(([t, style]) => `${t} ${style?.size}`)
+  expect(sized(planRow(steps, true, 100, NOW))).toEqual(['▰ heading', '▱ heading', '▱ heading'])
+  expect(steps.flatMap(s => sized(stepLine(s, true)))).toEqual(['▰ heading', '▱ heading'])
 })
 
 test('plan row shows the pause mark with no step in progress and no turn running', () => {
@@ -531,8 +555,8 @@ test('plan row shows the pause mark with no step in progress and no turn running
     { content: 'c', status: 'pending' },
     { content: 'd', status: 'pending' },
   ]
-  expect(text(planRow(steps, false, 100, NOW))).toBe('plan ▮▮▯▯ ‖')
-  expect(text(planRow(steps, true, 100, NOW))).toBe('plan ▮▮▯▯')
+  expect(text(planRow(steps, false, 100, NOW))).toBe('plan ▰▰▱▱ ‖')
+  expect(text(planRow(steps, true, 100, NOW))).toBe('plan ▰▰▱▱')
 })
 
 test('agents row shows every agent whose description has room, and hands spare cells to a longer one', () => {

@@ -7,8 +7,10 @@ const MIN_TEXT = 12
 // A type cut shorter than this names nothing, so it is left out instead.
 const MIN_TYPE = 4
 export const SEP = ' · '
-// ▮ and ▯ come from one font where the app's own has neither; a pair drawn from two fonts differs in size.
-const MARK = { completed: '▮', in_progress: '▶', pending: '▯' } as const
+const MARK = { completed: '▰', in_progress: '▶', pending: '▱' } as const
+// Under a proportional face ▰ and ▱ are borrowed from two fonts and differ in size; under the mono face, from one.
+// That one draws them small beside the text, so they go a size up; the terminal has one size.
+const marked = (style: TextProps): TextProps => ({ ...style, mono: true, size: 'heading' })
 const PAUSE = '‖'
 const DIM: TextProps = { dimColor: true }
 
@@ -94,7 +96,9 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
     steps.length * 4 > cols
       ? []
       : steps.map((s): Span =>
-          s.status === 'completed' ? [MARK.completed, tone('success')] : [MARK.pending, s.status === 'in_progress' ? tone('claude') : DIM],
+          s.status === 'completed'
+            ? [MARK.completed, marked(tone('success'))]
+            : [MARK.pending, marked(s.status === 'in_progress' ? tone('claude') : DIM)],
         )
   // Beside the marks a count reads as the number of the step after it, so it is written only in their place.
   const count = marks.length > 0 ? '' : `${done}/${steps.length} done`
@@ -121,12 +125,13 @@ export const planRow = (steps: readonly PlanStep[], isWorking: boolean, cols: nu
 }
 
 export const stepLine = (s: PlanStep, isWorking: boolean): Span[] => {
-  if (s.status === 'pending' || !isWorking) {
-    return [[`${s.status === 'in_progress' ? PAUSE : MARK[s.status]} ${s.content}`, DIM]]
+  if (s.status === 'in_progress') {
+    return isWorking
+      ? [[MARK.in_progress, { color: 'claude' }], [` ${s.content}`, { weight: 'semibold' }]]
+      : [[`${PAUSE} ${s.content}`, DIM]]
   }
-  return s.status === 'completed'
-    ? [[MARK.completed, { color: 'success' }], [` ${s.content}`, DIM]]
-    : [[MARK.in_progress, { color: 'claude' }], [` ${s.content}`, { weight: 'semibold' }]]
+  const tone: TextProps = isWorking && s.status === 'completed' ? { color: 'success' } : DIM
+  return [[MARK[s.status], marked(tone)], [` ${s.content}`, DIM]]
 }
 
 // The engine calls its cost an estimate and asks a mod that shows it to say so.

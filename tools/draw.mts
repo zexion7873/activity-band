@@ -40,17 +40,23 @@ const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 const mark = (ch: string, x: number, { y, cell, size }: Place, fill: string) => {
   const cy = y - size * 0.34
   const h = size * 0.62
-  const w = cell * (ch === '▶' ? 0.8 : 0.5)
-  const x0 = x + (cell - w) / 2
   if (ch === '▶') {
+    const w = cell * 0.8
+    const x0 = x + (cell - w) / 2
     return `<polygon points="${n(x0 + w * 0.1)},${n(cy - h / 2)} ${n(x0 + w * 0.9)},${n(cy)} ${n(x0 + w * 0.1)},${n(cy + h / 2)}" fill="${fill}"/>`
   }
-  const stroke = Math.max(1, cell * 0.12)
-  const inset = ch === '▮' ? 0 : stroke / 2
-  const box = `x="${n(x0 + inset)}" y="${n(cy - h / 2 + inset)}" width="${n(w - inset * 2)}" height="${n(h - inset * 2)}"`
-  return ch === '▮'
-    ? `<rect ${box} fill="${fill}"/>`
-    : `<rect ${box} fill="none" stroke="${fill}" stroke-width="${n(stroke)}"/>`
+  // A parallelogram nearly a cell wide and half as tall as the play mark, leaning right as the glyph does.
+  const stroke = Math.max(1, cell * 0.1)
+  const inset = ch === '▰' ? 0 : stroke / 2
+  const left = x + cell * 0.04 + inset
+  const right = x + cell * 0.96 - inset
+  const top = cy - h / 4 + inset
+  const bottom = cy + h / 4 - inset
+  const lean = (bottom - top) * 0.5
+  const points = `${n(left + lean)},${n(top)} ${n(right)},${n(top)} ${n(right - lean)},${n(bottom)} ${n(left)},${n(bottom)}`
+  return ch === '▰'
+    ? `<polygon points="${points}" fill="${fill}"/>`
+    : `<polygon points="${points}" fill="none" stroke="${fill}" stroke-width="${n(stroke)}"/>`
 }
 
 // One cell a character, each run of text held to its cells with textLength: the fonts a reader has differ in width.
@@ -61,11 +67,11 @@ export const row = (spans: readonly Span[], at: Place) => {
     const fill = COLOR[style.color ?? (style.dimColor ? 'dim' : 'text')]
     if (fill === undefined) throw new Error(`no literal for the theme key "${style.color}": add it to COLOR`)
     const weight = style.weight === 'semibold' ? ' font-weight="600"' : ''
-    for (const run of text.split(/([▮▯▶])/)) {
+    for (const run of text.split(/([▰▱▶])/)) {
       if (run === '') continue
       const x = at.x + col * at.cell
       const word = run.trim()
-      if (run === '▮' || run === '▯' || run === '▶') out.push(mark(run, x, at, fill))
+      if (run === '▰' || run === '▱' || run === '▶') out.push(mark(run, x, at, fill))
       else if (word !== '') {
         const lead = run.length - run.trimStart().length
         out.push(
