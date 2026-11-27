@@ -80,9 +80,14 @@ says otherwise.
 - **Let the marks give way before the step in progress.** A plan whose marks
   would take more than a quarter of the row is drawn with its count alone: the
   two say the same thing, and the step's text is what the row is for.
-- **Take both marks from one font.** `▮` and `▯` fall back to the same font
-  where the app's own has neither; a filled and a hollow mark from two fonts
-  differ in size on the desktop. Measured with CoreText, not pinned by a test.
+- **Draw the filled and the hollow mark in the mono face, a size up.** The
+  app's own font has neither `▰` nor `▱`; under a proportional face macOS
+  borrows them from two fonts and the hollow one draws half again as large,
+  under a monospaced one both come from one font. So each carries `mono`. That
+  font draws them 0.29 em tall, small beside the text, so each also carries
+  `size: 'heading'`, the one step between the default and `title`. Both hold
+  on the row and in the card, and the terminal ignores both. The tests pin the
+  props; the sizes were measured with CoreText on macOS, on no other system.
 - **Count width in cells, not characters.** A CJK character takes two; a cut
   by `length` overflows `e.props.bodyColumns`.
 - **Hand back no row wider than its width.** Each builder ends in `fit`, so
@@ -121,14 +126,15 @@ says otherwise.
 Both hover cards are pinned by tests and have been watched in the desktop app,
 with the colors, the paused row, a plan held paused through a later turn, the
 cut at a narrow width, a plan drawn without its marks and an agent drawn
-without its type. So have the `▮` and `▯` marks on the row and in the plan
-card, a row with marks and no count, the minutes after the step in progress,
-the dim type, a dim `waiting`, a stopped agent kept on the row, the card's
-facts line and its indent for a spawned agent, and the card's buttons: how a
-`plain` `Button` draws there, the card staying open while the pointer moves
-onto one, a press that opens an agent, the bold mark on the agent on screen
-and `← main conversation`. Not watched there: `12/30 done`, a run written in
-hours, a failed agent kept on the row, `quiet`, and the toast on a refusal.
+without its type. So have a row with marks and no count, the minutes after
+the step in progress, the dim type, a dim `waiting`, a stopped agent kept on
+the row, the card's facts line and its indent for a spawned agent, and the
+card's buttons: how a `plain` `Button` draws there, the card staying open
+while the pointer moves onto one, a press that opens an agent, the bold mark
+on the agent on screen and `← main conversation`, and `▰` and `▱` in the mono
+face a size up, one size as each other. Not watched there: `12/30 done`, a
+run written in hours, a failed agent kept on the row, `quiet`, and the toast
+on a refusal.
 In a real terminal no row has been watched.
 
 ## The plan source is not a documented interface
